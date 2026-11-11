@@ -57,6 +57,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .spl-bar{width:140px;height:3px;background:var(--sf2);border-radius:99px;overflow:hidden;margin-top:6px;}
 .spl-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));border-radius:99px;animation:fb 1.6s ease-out forwards;}
 @keyframes fb{from{width:0;}to{width:100%;}}
+.task-loading,.task-load-error{display:flex;align-items:center;justify-content:center;gap:9px;padding:24px;color:var(--tx2);font-size:12px;}
+.task-spinner{width:16px;height:16px;border:2px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:task-spin .75s linear infinite;}
+@keyframes task-spin{to{transform:rotate(360deg);}}
 /* ════════════════ TOP BAR ════════════════ */
 #tbar{position:fixed;top:0;left:0;right:0;height:2px;z-index:500;background:linear-gradient(90deg,var(--ac),var(--gr),var(--ac));background-size:200%;opacity:0;transition:opacity .2s;animation:bs 1.2s linear infinite;}
 @keyframes bs{to{background-position:200%;}}
@@ -1205,6 +1208,7 @@ var SLAB = {'Нова':'Нова','В роботі':'В роботі','На пе
 // ══════════════════════════════════════════
 var me=null, rawUsers=[], allTasks=[], infoRecs=[], planSlots=[], statTasksAll=[];
 var execTasks=[], mineTasks=[];
+var tasksLoaded=false, tasksLoadState='loading';
 var selExecs=[], editTId=null, editUId=null, editIId=null;
 var revId='', commId='', curDetId='', filesId='', infoFilesId='';
 var selFile=null, selInfoFile=null;
@@ -1329,6 +1333,7 @@ function logout() {
     sessionStorage.removeItem('tt_active_tab');
   } catch(_) {}
   me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[];
+  tasksLoaded=false; tasksLoadState='loading';
   selExecs=[]; filesId=''; selFile=null; selInfoFile=null;
   if (autoT) clearInterval(autoT);
   document.getElementById('app').classList.remove('on');
@@ -1520,12 +1525,22 @@ function startAutoRefresh() {
 //  ДАНІ
 // ══════════════════════════════════════════
 function refresh() {
+  if (!tasksLoaded) {
+    tasksLoadState='loading';
+    buildViews();
+  }
   barOn();
   google.script.run
     .withSuccessHandler(function(r) {
       barOff();
-      if (!r||!r.ok) { toast((r&&r.err)||'Помилка завантаження','err'); return; }
+      if (!r||!r.ok) {
+        if (!tasksLoaded) { tasksLoadState='error'; buildViews(); }
+        toast((r&&r.err)||'Помилка завантаження','err');
+        return;
+      }
       allTasks = r.tasks||[];
+      tasksLoaded=true;
+      tasksLoadState='loaded';
       if (r.users && r.users.length) {
         rawUsers = [['h','h','h','h','h','h']].concat(r.users.map(function(u){
           return [u.login,u.name,u.dept,u.role,'',u.email||''];
@@ -1534,7 +1549,11 @@ function refresh() {
       }
       buildViews(); updateBadges();
     })
-    .withFailureHandler(function(){ barOff(); toast("Помилка з'єднання",'err'); })
+    .withFailureHandler(function(){
+      barOff();
+      if (!tasksLoaded) { tasksLoadState='error'; buildViews(); }
+      toast("Помилка з'єднання",'err');
+    })
     .getAppData(me.login);
 }
 
@@ -1574,8 +1593,18 @@ function setEF(s) {
   renderExec();
 }
 
+function renderTaskLoadState(list, empty) {
+  if (tasksLoadState==='loaded') return false;
+  list.innerHTML=tasksLoadState==='error'
+    ? '<div class="task-load-error" role="alert">Не вдалося завантажити задачі. <button class="btn bgh bsm" onclick="refresh()">Спробувати ще</button></div>'
+    : '<div class="task-loading" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Завантажуємо задачі...</div>';
+  empty.style.display='none';
+  return true;
+}
+
 function renderExec() {
   var list=document.getElementById('exList'), empty=document.getElementById('exEmpty');
+  if (renderTaskLoadState(list, empty)) return;
   var q=(document.getElementById('exSr')?document.getElementById('exSr').value:'').toLowerCase();
   // Показуємо ВСІ задачі де я виконавець — включно виконані/архівні
   var tasks=execTasks.filter(function(t) {
@@ -1610,6 +1639,7 @@ function renderExec() {
 function renderMine() {
   var list=document.getElementById('mnList'), empty=document.getElementById('mnEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var fs=document.getElementById('mnFS')?document.getElementById('mnFS').value:'';
   var q=document.getElementById('mnSr')?document.getElementById('mnSr').value.toLowerCase():'';
   var tasks=mineTasks.filter(function(t) {
@@ -1631,6 +1661,7 @@ function renderMine() {
 function renderAll() {
   var list=document.getElementById('alList'), empty=document.getElementById('alEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var ml=me.login.toLowerCase().trim();
   var fs=document.getElementById('alFS')?document.getElementById('alFS').value:'';
   var fd=document.getElementById('alFD')?document.getElementById('alFD').value:'';
@@ -1655,6 +1686,7 @@ function renderAll() {
 function renderArch() {
   var list=document.getElementById('arList'), empty=document.getElementById('arEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var ml=me.login.toLowerCase().trim();
   var fs=document.getElementById('arFS')?document.getElementById('arFS').value:'';
   var q=document.getElementById('arSr')?document.getElementById('arSr').value.toLowerCase():'';

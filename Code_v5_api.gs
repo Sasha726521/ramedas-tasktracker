@@ -198,16 +198,15 @@ function loginUser(login, password) {
 // ─── ГОЛОВНИЙ ENDPOINT ───────────────────────────
 function getAppData(callerLogin) {
   try {
-    const t0      = Date.now();
     const myLogin = String(callerLogin||"").toLowerCase().trim();
-    const caller  = getUser(myLogin);
-    if (!caller) return { ok: false, err: "Не авторизовано" };
-
-    const taskRows = sh("Tasks").getDataRange().getValues();
-    const userRows = sh("Users").getDataRange().getValues();
+    const spreadsheet = ss();
+    const userSheet = spreadsheet.getSheetByName("Users");
+    if (!userSheet) throw new Error("Лист Users не знайдено");
+    const userRows = userSheet.getDataRange().getValues();
 
     const uMap = {};
     const userList = [];
+    let caller = null;
     for (let i = 1; i < userRows.length; i++) {
       if (!userRows[i][0]) continue;
       const ul = String(userRows[i][0]).toLowerCase().trim();
@@ -216,6 +215,7 @@ function getAppData(callerLogin) {
         dept: String(userRows[i][2]||""),
         role: String(userRows[i][3]||"")
       };
+      if (!caller && ul === myLogin) caller = uMap[ul];
       userList.push({
         login: ul,
         name:  String(userRows[i][1]||""),
@@ -223,6 +223,12 @@ function getAppData(callerLogin) {
         role:  String(userRows[i][3]||"")
       });
     }
+
+    if (!caller) return { ok: false, err: "Не авторизовано" };
+
+    const taskSheet = spreadsheet.getSheetByName("Tasks");
+    if (!taskSheet) throw new Error("Лист Tasks не знайдено");
+    const taskRows = taskSheet.getDataRange().getValues();
 
     const tasks = [];
     for (let i = 1; i < taskRows.length; i++) {
@@ -272,7 +278,6 @@ function getAppData(callerLogin) {
       });
     }
 
-    Logger.log("getAppData: " + tasks.length + " tasks, " + (Date.now()-t0) + "ms");
     return { ok: true, tasks, users: userList };
   } catch(e) {
     Logger.log("getAppData error: " + e.message);
