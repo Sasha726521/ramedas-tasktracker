@@ -1699,8 +1699,8 @@ function mkCard(t, idx, mode) {
   var tl='';
   if (t.startedAt||t.closedAt) {
     tl='<div class="tl-row">';
-    if (t.startedAt) tl+='<span class="tl-item tl-st">'+h(fmtTaskDate(t.startedAt))+'</span>';
-    if (t.closedAt)  tl+='<span class="tl-item tl-cl">'+h(fmtTaskDate(t.closedAt))+'</span>';
+    if (t.startedAt) tl+='<span class="tl-item tl-st"><b>Розпочато:</b> '+h(fmtTaskDate(t.startedAt))+'</span>';
+    if (t.closedAt)  tl+='<span class="tl-item tl-cl"><b>Закрито:</b> '+h(fmtTaskDate(t.closedAt))+'</span>';
     tl+='</div>';
   }
 
@@ -1714,7 +1714,7 @@ function mkCard(t, idx, mode) {
     '</div>' +
     (t.revComment?'<div class="rvb"><div class="rvbl">Коментар керівника</div><div class="rvbt">'+h(t.revComment.substring(0,160))+'</div></div>':'') +
     '<div class="tcm">' +
-      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
+      '<span><b>Дедлайн:</b> <span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+'</span></span>' +
       '<span style="color:'+PCR[t.priority]+';">'+t.priority+'</span>' +
       '<span style="color:var(--tx3);">від '+h(t.authorName||t.author)+'</span>' +
     '</div>' +
@@ -1758,7 +1758,7 @@ function mkMineCard(t, idx) {
     (t.revComment?'<div class="rvb"><div class="rvbl">Попередній коментар</div><div class="rvbt">'+h(t.revComment.substring(0,120))+'</div></div>':'') +
     '<div class="tcm">' +
       '<span><b>'+h(t.execNames||(t.executors[0]||'—'))+'</b></span>' +
-      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
+      '<span><b>Дедлайн:</b> <span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+'</span></span>' +
       '<span style="color:'+PCR[t.priority]+';">'+t.priority+'</span>' +
     '</div>' +
     '<div class="tca">' +
@@ -1787,8 +1787,8 @@ function mkAllCard(t, idx) {
         '<div class="tcm">' +
           '<span>'+h(t.execNames||(t.executors[0]||'—'))+'</span>' +
           '<span>'+h(t.authorName||t.author)+'</span>' +
-          '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
-          (t.closedAt?'<span style="color:var(--gr);">'+h(fmtTaskDate(t.closedAt))+'</span>':'') +
+          '<span><b>Дедлайн:</b> <span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+'</span></span>' +
+          (t.closedAt?'<span style="color:var(--gr);"><b>Закрито:</b> '+h(fmtTaskDate(t.closedAt))+'</span>':'') +
         '</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">' +
@@ -1840,9 +1840,9 @@ function openDet(tid) {
   var tl=document.getElementById('dTL'); tl.innerHTML='';
   if (t.deadline||t.startedAt||t.closedAt) {
     var tlH='<div class="tl-row">';
-    if (t.deadline) { var isOv=new Date(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'">'+h(fmtTaskDate(t.deadline))+'</span>'; }
-    if (t.startedAt) tlH+='<span class="tl-item tl-st">'+h(fmtTaskDate(t.startedAt))+'</span>';
-    if (t.closedAt)  tlH+='<span class="tl-item tl-cl">'+h(fmtTaskDate(t.closedAt))+'</span>';
+    if (t.deadline) { var isOv=new Date(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'"><b>Дедлайн:</b> '+h(fmtTaskDate(t.deadline))+'</span>'; }
+    if (t.startedAt) tlH+='<span class="tl-item tl-st"><b>Розпочато:</b> '+h(fmtTaskDate(t.startedAt))+'</span>';
+    if (t.closedAt)  tlH+='<span class="tl-item tl-cl"><b>Закрито:</b> '+h(fmtTaskDate(t.closedAt))+'</span>';
     tlH+='</div>'; tl.innerHTML=tlH;
   }
 
@@ -2340,7 +2340,7 @@ function statDetailHtml(t) {
   if (t.coExec)   g+=it('Суміжний виконавець',h(t.coExec));
   g+=it('Постановник',h(t.authorName||'—'));
   g+=it('Дедлайн','<span'+(ov?' class="st-ov"':'')+'>'+h(fmtTaskDate(t.deadline||'—'))+'</span>');
-  if (t.startedAt) g+=it('Взято в роботу',h(fmtTaskDate(t.startedAt)));
+  if (t.startedAt) g+=it('Розпочато',h(fmtTaskDate(t.startedAt)));
   g+=it('Закрито',h(fmtTaskDate(t.closedAt||'—')));
   var html='<div class="st-box">' +
     '<div class="st-full">'+h(t.title)+'</div>' +
