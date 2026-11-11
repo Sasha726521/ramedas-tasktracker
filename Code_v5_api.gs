@@ -86,7 +86,11 @@ function getAppUrl() {
 }
 
 // ─── ДОПОМІЖНІ ───────────────────────────────────
-function ss()     { return SpreadsheetApp.getActiveSpreadsheet(); }
+function ss() {
+  const id = PropertiesService.getScriptProperties().getProperty('TEST_SPREADSHEET_ID');
+  if (!id) throw new Error('Run setupTestEnvironment first.');
+  return SpreadsheetApp.openById(id);
+}
 function sh(name) { return ss().getSheetByName(name); }
 
 function getOrCreate(name, headers) {
@@ -1702,4 +1706,22 @@ function testTelegram() {
       .getContentText()
   );
   Logger.log("Webhook: " + JSON.stringify(webhookInfo.result));
+}
+
+// Create an isolated database. Never import production users or notification settings.
+function setupTestEnvironment() {
+  const props = PropertiesService.getScriptProperties();
+  let id = props.getProperty('TEST_SPREADSHEET_ID');
+  if (!id) {
+    const spreadsheet = SpreadsheetApp.create('TaskTracker - TEST');
+    id = spreadsheet.getId();
+    props.setProperty('TEST_SPREADSHEET_ID', id);
+  }
+  initSheets();
+  const users = sh('Users');
+  if (users.getLastRow() === 1) {
+    users.appendRow(['testadmin', 'Тестовий адміністратор', 'Відділ інформаційних технологій', 'Адмін', Utilities.getUuid(), '', '', '']);
+  }
+  Logger.log('Test database: ' + ss().getUrl());
+  Logger.log('Login: testadmin. Password is in Users!E2. Do not use real company data.');
 }
