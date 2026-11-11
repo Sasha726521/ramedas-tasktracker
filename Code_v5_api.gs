@@ -11,7 +11,7 @@
  *  7. Telegram sendMessage з повним логуванням відповіді
  */
 
-const TZ       = "GMT+3";
+const TZ       = "Europe/Kyiv";
 const ROLE_MGR = ["Адмін", "Дирекція", "Керівник"];
 // Всі ролі системи
 const ALL_ROLES = ["Адмін", "Дирекція", "Керівник", "Співробітник"];
@@ -262,8 +262,8 @@ function getAppData(callerLogin) {
         author:      author,
         authorName:  (uMap[author]||{}).name || author,
         deadline:    r[9]  ? String(r[9]).replace("T"," ").substring(0,16) : "",
-        startedAt:   r[10] ? String(r[10]).substring(0,16) : "",
-        closedAt:    r[11] ? String(r[11]).substring(0,16) : "",
+        startedAt:   r[10] instanceof Date ? Utilities.formatDate(r[10], TZ, "yyyy-MM-dd HH:mm") : r[10] ? String(r[10]).substring(0,16) : "",
+        closedAt:    r[11] instanceof Date ? Utilities.formatDate(r[11], TZ, "yyyy-MM-dd HH:mm") : r[11] ? String(r[11]).substring(0,16) : "",
         meetLink:    String(r[12]||""),
         priority:    String(r[13]||"Середній"),
         revComment:  String(r[14]||""),
@@ -361,7 +361,8 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
 
     const sheet = sh("Tasks");
     const rows  = sheet.getDataRange().getValues();
-    const now   = nowStr();
+    const now   = new Date();
+    const nowText = Utilities.formatDate(now, TZ, "yyyy-MM-dd HH:mm:ss");
 
     for (let i = 1; i < rows.length; i++) {
       if (String(rows[i][0]) !== String(taskId)) continue;
@@ -387,7 +388,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
       if (newStatus === "В роботі" && !rows[i][10]) sheet.getRange(i+1, 11).setValue(now);
       if (["Виконано","Скасовано"].includes(newStatus)) sheet.getRange(i+1, 12).setValue(now);
       if (newStatus === "На доопрацювання" && revComment)
-        sheet.getRange(i+1, 15).setValue("["+now+"] "+caller.name+": "+revComment);
+        sheet.getRange(i+1, 15).setValue("["+nowText+"] "+caller.name+": "+revComment);
 
       audit(callerLogin, "STATUS", taskId, "→"+newStatus);
 
@@ -398,7 +399,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
         "Задача: " + title,
         "Статус: " + newStatus,
         "Хто змінив: " + caller.name,
-        "Дата: " + now.substring(0,16)
+        "Дата: " + nowText.substring(0,16)
       ].join("\n");
 
       // Виконавцям
@@ -411,7 +412,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
           "Задача яку ви поставили: " + title,
           "Статус: " + newStatus,
           "Виконавець: " + caller.name,
-          "Дата: " + now.substring(0,16)
+          "Дата: " + nowText.substring(0,16)
         ].join("\n"));
       }
 
@@ -419,7 +420,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
       if (newStatus === "На доопрацювання" && revComment) {
         _notifyMany([...execs, ...(coExec ? [coExec] : [])],
           "🔄 Потрібне доопрацювання: " + title,
-          ["Задача: " + title, "Коментар:\n" + revComment, "Від: " + caller.name, "Дата: " + now.substring(0,16)].join("\n")
+          ["Задача: " + title, "Коментар:\n" + revComment, "Від: " + caller.name, "Дата: " + nowText.substring(0,16)].join("\n")
         );
       }
 
@@ -427,7 +428,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
       if (newStatus === "Виконано") {
         _notifyMany([...execs, ...(coExec ? [coExec] : [])],
           "✅ Задачу прийнято: " + title,
-          ["Задача прийнята: " + title, "Прийняв: " + caller.name, "Дата: " + now.substring(0,16)].join("\n")
+          ["Задача прийнята: " + title, "Прийняв: " + caller.name, "Дата: " + nowText.substring(0,16)].join("\n")
         );
       }
 
