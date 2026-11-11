@@ -261,7 +261,9 @@ function getAppData(callerLogin) {
         coExecName:  coExec ? ((uMap[coExec]||{}).name || coExec) : "",
         author:      author,
         authorName:  (uMap[author]||{}).name || author,
-        deadline:    r[9]  ? String(r[9]).replace("T"," ").substring(0,16) : "",
+        deadline:    r[9] instanceof Date
+          ? Utilities.formatDate(r[9], TZ, "yyyy-MM-dd HH:mm").replace(/ 00:00$/, "")
+          : r[9] ? String(r[9]).replace(/^(\d{4}-\d{2}-\d{2})T/, "$1 ").substring(0,16) : "",
         startedAt:   r[10] instanceof Date ? Utilities.formatDate(r[10], TZ, "yyyy-MM-dd HH:mm") : r[10] ? String(r[10]).substring(0,16) : "",
         closedAt:    r[11] instanceof Date ? Utilities.formatDate(r[11], TZ, "yyyy-MM-dd HH:mm") : r[11] ? String(r[11]).substring(0,16) : "",
         meetLink:    String(r[12]||""),

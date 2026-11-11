@@ -1699,8 +1699,8 @@ function mkCard(t, idx, mode) {
   var tl='';
   if (t.startedAt||t.closedAt) {
     tl='<div class="tl-row">';
-    if (t.startedAt) tl+='<span class="tl-item tl-st">'+h(t.startedAt)+'</span>';
-    if (t.closedAt)  tl+='<span class="tl-item tl-cl">'+h(t.closedAt)+'</span>';
+    if (t.startedAt) tl+='<span class="tl-item tl-st">'+h(fmtTaskDate(t.startedAt))+'</span>';
+    if (t.closedAt)  tl+='<span class="tl-item tl-cl">'+h(fmtTaskDate(t.closedAt))+'</span>';
     tl+='</div>';
   }
 
@@ -1714,7 +1714,7 @@ function mkCard(t, idx, mode) {
     '</div>' +
     (t.revComment?'<div class="rvb"><div class="rvbl">Коментар керівника</div><div class="rvbt">'+h(t.revComment.substring(0,160))+'</div></div>':'') +
     '<div class="tcm">' +
-      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+(t.deadline||'—')+(isOv?'':'')+' </span></span>' +
+      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
       '<span style="color:'+PCR[t.priority]+';">'+t.priority+'</span>' +
       '<span style="color:var(--tx3);">від '+h(t.authorName||t.author)+'</span>' +
     '</div>' +
@@ -1758,7 +1758,7 @@ function mkMineCard(t, idx) {
     (t.revComment?'<div class="rvb"><div class="rvbl">Попередній коментар</div><div class="rvbt">'+h(t.revComment.substring(0,120))+'</div></div>':'') +
     '<div class="tcm">' +
       '<span><b>'+h(t.execNames||(t.executors[0]||'—'))+'</b></span>' +
-      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+(t.deadline||'—')+(isOv?'':'')+' </span></span>' +
+      '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
       '<span style="color:'+PCR[t.priority]+';">'+t.priority+'</span>' +
     '</div>' +
     '<div class="tca">' +
@@ -1787,8 +1787,8 @@ function mkAllCard(t, idx) {
         '<div class="tcm">' +
           '<span>'+h(t.execNames||(t.executors[0]||'—'))+'</span>' +
           '<span>'+h(t.authorName||t.author)+'</span>' +
-          '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+(t.deadline||'—')+(isOv?'':'')+' </span></span>' +
-          (t.closedAt?'<span style="color:var(--gr);">'+h(fmtDate(t.closedAt))+'</span>':'') +
+          '<span><span style="'+(isOv?'color:var(--rd);font-weight:700;':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+' </span></span>' +
+          (t.closedAt?'<span style="color:var(--gr);">'+h(fmtTaskDate(t.closedAt))+'</span>':'') +
         '</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">' +
@@ -1822,7 +1822,7 @@ function openDet(tid) {
   document.getElementById('dSt').innerHTML='<span class="'+(SCH[t.status]||'ch cc')+'">'+h(SLAB[t.status]||t.status)+'</span>';
   document.getElementById('dPr').textContent=t.priority;
   document.getElementById('dTy').textContent=t.type;
-  document.getElementById('dDl').textContent=t.deadline||'—';
+  document.getElementById('dDl').textContent=fmtTaskDate(t.deadline||'—');
   var exStr=t.execNames||(t.executors[0]||'—');
   if (t.coExecName) exStr+=' + '+t.coExecName+' (суміжний)';
   if (t.execDepts) exStr+=' (🏢 '+t.execDepts+')';
@@ -1840,9 +1840,9 @@ function openDet(tid) {
   var tl=document.getElementById('dTL'); tl.innerHTML='';
   if (t.deadline||t.startedAt||t.closedAt) {
     var tlH='<div class="tl-row">';
-    if (t.deadline) { var isOv=new Date(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'">'+h(t.deadline)+'</span>'; }
-    if (t.startedAt) tlH+='<span class="tl-item tl-st">'+h(t.startedAt)+'</span>';
-    if (t.closedAt)  tlH+='<span class="tl-item tl-cl">'+h(t.closedAt)+'</span>';
+    if (t.deadline) { var isOv=new Date(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'">'+h(fmtTaskDate(t.deadline))+'</span>'; }
+    if (t.startedAt) tlH+='<span class="tl-item tl-st">'+h(fmtTaskDate(t.startedAt))+'</span>';
+    if (t.closedAt)  tlH+='<span class="tl-item tl-cl">'+h(fmtTaskDate(t.closedAt))+'</span>';
     tlH+='</div>'; tl.innerHTML=tlH;
   }
 
@@ -2339,9 +2339,9 @@ function statDetailHtml(t) {
   g+=it('Виконавець',h(t.executor||'—'));
   if (t.coExec)   g+=it('Суміжний виконавець',h(t.coExec));
   g+=it('Постановник',h(t.authorName||'—'));
-  g+=it('Дедлайн','<span'+(ov?' class="st-ov"':'')+'>'+h(t.deadline||'—')+'</span>');
-  if (t.startedAt) g+=it('Взято в роботу',h(t.startedAt));
-  g+=it('Закрито',h(t.closedAt||'—'));
+  g+=it('Дедлайн','<span'+(ov?' class="st-ov"':'')+'>'+h(fmtTaskDate(t.deadline||'—'))+'</span>');
+  if (t.startedAt) g+=it('Взято в роботу',h(fmtTaskDate(t.startedAt)));
+  g+=it('Закрито',h(fmtTaskDate(t.closedAt||'—')));
   var html='<div class="st-box">' +
     '<div class="st-full">'+h(t.title)+'</div>' +
     '<div class="st-grid">'+g+'</div>';
@@ -2377,8 +2377,8 @@ function renderStatTasks(list) {
       '<td>'+h(t.executor||'—')+'</td>' +
       '<td>'+h(t.authorName||'—')+'</td>' +
       '<td><span class="'+(SCH[t.status]||'ch cc')+'">'+h(SLAB[t.status]||t.status)+'</span></td>' +
-      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;'+(isStatOverdue(t)?'color:var(--rd);':'')+'">'+h(t.deadline||'—')+'</td>' +
-      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;color:var(--gr);">'+h(t.closedAt||'—')+'</td>' +
+      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;'+(isStatOverdue(t)?'color:var(--rd);':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+'</td>' +
+      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;color:var(--gr);">'+h(fmtTaskDate(t.closedAt||'—'))+'</td>' +
     '</tr>';
     if (open) html+='<tr class="st-det" data-for="'+h(t.id)+'"><td colspan="6">'+statDetailHtml(t)+'</td></tr>';
   });
@@ -2696,7 +2696,7 @@ function renderAnnouncements(items) {
       '<div class="ann-meta">' +
         '<span>' + h(a.author) + '</span>' +
         '<span>•</span>' +
-        '<span>' + h(fmtDate(a.createdAt)) + '</span>' +
+        '<span>' + h(fmtTaskDate(a.createdAt)) + '</span>' +
         '<span class="ann-edit-slot"></span>' +
       '</div>';
     if (isAdm) {
@@ -2839,20 +2839,29 @@ function toast(msg, type, ms) {
 }
 
 
-// Форматування дати → укр формат dd.MM.yyyy HH:mm
-function fmtDate(s) {
-  if (!s) return '—';
-  // "2026-06-09 07:32" або "Tue Jun 09 2026"
+// Формат дат -> dd.MM.yyyy [HH:mm]
+function fmtTaskDate(s) {
+  if (!s || s === '—') return s || '—';
+  var text=String(s);
+  var m=text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if (m) {
+    var y=Number(m[1]), mo=Number(m[2]), d=Number(m[3]);
+    var date=new Date(Date.UTC(y,mo-1,d));
+    if (date.getUTCFullYear()!==y || date.getUTCMonth()!==mo-1 || date.getUTCDate()!==d) return s;
+    return m[3]+'.'+m[2]+'.'+m[1]+(m[4] && (m[4]!=='00' || m[5]!=='00')?' '+m[4]+':'+m[5]:'');
+  }
+  m=text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+  if (m) return m[1].padStart(2,'0')+'.'+m[2].padStart(2,'0')+'.'+m[3]+(m[4] && (m[4]!=='00' || m[5]!=='00')?' '+m[4]+':'+m[5]:'');
   try {
-    var d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    var dd=String(d.getDate()).padStart(2,'0');
-    var mm=String(d.getMonth()+1).padStart(2,'0');
-    var yy=d.getFullYear();
-    var hh=String(d.getHours()).padStart(2,'0');
-    var mi=String(d.getMinutes()).padStart(2,'0');
-    return dd+'.'+mm+'.'+yy+' '+hh+':'+mi;
-  } catch(_){ return s; }
+    var parsed=new Date(text);
+    if (isNaN(parsed.getTime())) return s;
+    var dd=String(parsed.getDate()).padStart(2,'0');
+    var mm=String(parsed.getMonth()+1).padStart(2,'0');
+    var yyyy=parsed.getFullYear();
+    var result=dd+'.'+mm+'.'+yyyy;
+    if (parsed.getHours() || parsed.getMinutes()) result+=' '+String(parsed.getHours()).padStart(2,'0')+':'+String(parsed.getMinutes()).padStart(2,'0');
+    return result;
+  } catch(_) { return s; }
 }
 function h(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function e(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\\''); }
