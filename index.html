@@ -1029,7 +1029,7 @@ function _demoAPI(fn, params, onSuccess) {
       case 'deleteInfoRecord':
         DEMO.info = DEMO.info.filter(function(x){return x.id!==p[0];}); onSuccess({ ok:true }); break;
       case 'saveAnnouncement':
-        var a=p[0]||{}; if(a.id){ var exa=DEMO.ann.find(function(x){return x.id===a.id;}); if(exa) Object.assign(exa,a); } else { a.id='A-'+(DEMO.ann.length+1); a.author=DEMO.me.name; a.createdAt=new Date().toISOString().slice(0,10); DEMO.ann.push(a); } onSuccess({ ok:true }); break;
+        var a=p[0]||{}; if(a.id){ var exa=DEMO.ann.find(function(x){return x.id===a.id;}); if(exa) Object.assign(exa,a); } else { a.id='A-'+(DEMO.ann.length+1); a.author=DEMO.me.name; a.createdAt=dateISO(new Date()).slice(0,10); DEMO.ann.push(a); } onSuccess({ ok:true }); break;
       case 'deleteAnnouncement':
         DEMO.ann = DEMO.ann.filter(function(x){return x.id!==p[0];}); onSuccess({ ok:true }); break;
       case 'addUser':
@@ -1276,7 +1276,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Сьогодні у графіку
   var wd=document.getElementById('wlDate');
-  if (wd) wd.value=new Date().toISOString().split('T')[0];
+  if (wd) wd.value=dateISO(new Date()).slice(0,10);
 
   // Відновлення сесії
   try {
@@ -1582,7 +1582,7 @@ function renderExec() {
     var oa=ord[a.status]!==undefined?ord[a.status]:6;
     var ob=ord[b.status]!==undefined?ord[b.status]:6;
     if (oa!==ob) return oa-ob;
-    if (a.deadline&&b.deadline) return new Date(a.deadline)-new Date(b.deadline);
+    if (a.deadline&&b.deadline) return kyivInstant(a.deadline)-kyivInstant(b.deadline);
     return 0;
   });
   if (!tasks.length) { list.innerHTML=''; empty.style.display=''; return; }
@@ -1670,7 +1670,7 @@ function mkCard(t, idx, mode) {
   div.className=(PCL[t.priority]||'tc pm')+' fi';
   div.style.animationDelay=(idx*0.04)+'s';
   var now=new Date();
-  var isOv=t.deadline && new Date(t.deadline)<now && !['Виконано','Скасовано'].includes(t.status);
+  var isOv=t.deadline && kyivInstant(t.deadline)<now && !['Виконано','Скасовано'].includes(t.status);
   var ml=me.login.toLowerCase().trim();
   var isEx=t.executors.indexOf(ml)!==-1||t.coExec===ml||t.isExec;
   var isMgr=RMGR.includes(me.role);
@@ -1734,7 +1734,7 @@ function mkMineCard(t, idx) {
   div.className=(PCL[t.priority]||'tc pm')+' fi';
   div.style.animationDelay=(idx*0.03)+'s';
   var now=new Date();
-  var isOv=t.deadline && new Date(t.deadline)<now && !['Виконано','Скасовано'].includes(t.status);
+  var isOv=t.deadline && kyivInstant(t.deadline)<now && !['Виконано','Скасовано'].includes(t.status);
 
   // Кнопки автора — приймає/відхиляє (тільки автор або Адмін)
   var act='';
@@ -1776,7 +1776,7 @@ function mkAllCard(t, idx) {
   var div=document.createElement('div');
   div.className=(PCL[t.priority]||'tc pm')+' fi';
   div.style.animationDelay=(idx*0.02)+'s';
-  var isOv=t.deadline && new Date(t.deadline)<now() && !['Виконано','Скасовано'].includes(t.status);
+  var isOv=t.deadline && kyivInstant(t.deadline)<now() && !['Виконано','Скасовано'].includes(t.status);
   var isMgr=RMGR.includes(me.role);
 
   div.innerHTML=
@@ -1822,7 +1822,7 @@ function openDet(tid) {
   document.getElementById('dSt').innerHTML='<span class="'+(SCH[t.status]||'ch cc')+'">'+h(SLAB[t.status]||t.status)+'</span>';
   document.getElementById('dPr').textContent=t.priority;
   document.getElementById('dTy').textContent=t.type;
-  document.getElementById('dDl').textContent=fmtTaskDate(t.deadline||'—');
+  document.getElementById('dDl').textContent=fmtTaskDate(t.deadline, 'full');
   var exStr=t.execNames||(t.executors[0]||'—');
   if (t.coExecName) exStr+=' + '+t.coExecName+' (суміжний)';
   if (t.execDepts) exStr+=' (🏢 '+t.execDepts+')';
@@ -1840,7 +1840,7 @@ function openDet(tid) {
   var tl=document.getElementById('dTL'); tl.innerHTML='';
   if (t.deadline||t.startedAt||t.closedAt) {
     var tlH='<div class="tl-row">';
-    if (t.deadline) { var isOv=new Date(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'"><b>Дедлайн:</b> '+h(fmtTaskDate(t.deadline))+'</span>'; }
+    if (t.deadline) { var isOv=kyivInstant(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'"><b>Дедлайн:</b> '+h(fmtTaskDate(t.deadline))+'</span>'; }
     if (t.startedAt) tlH+='<span class="tl-item tl-st"><b>Розпочато:</b> '+h(fmtTaskDate(t.startedAt))+'</span>';
     if (t.closedAt)  tlH+='<span class="tl-item tl-cl"><b>Закрито:</b> '+h(fmtTaskDate(t.closedAt))+'</span>';
     tlH+='</div>'; tl.innerHTML=tlH;
@@ -1959,7 +1959,7 @@ function openEdit(tid) {
   document.getElementById('fTy').value=t.type;  document.getElementById('fPr').value=t.priority;
   document.getElementById('fDp').value=t.dept;
   document.getElementById('fStRow').style.display=''; document.getElementById('fSt').value=t.status;
-  document.getElementById('fDl').value=t.deadline?t.deadline.replace(' ','T').substring(0,16):'';
+  document.getElementById('fDl').value=dateISO(t.deadline).replace(' ','T').slice(0,16);
   selExecs=t.executors.slice(); fillExL();
   setTimeout(function(){document.getElementById('fCo').value=t.coExec||'';},110);
   openM('mTask');
@@ -2039,7 +2039,7 @@ function openCommD(tid) {
         var iM=c.author===me.login;
         var wr=document.createElement('div'); wr.style.cssText='display:flex;'+(iM?'justify-content:flex-end;':'');
         var bb=document.createElement('div'); bb.className='cbb '+(iM?'me':'ot');
-        bb.innerHTML='<div class="cba '+(iM?'me':'ot')+'">'+h(c.name||c.author)+' · '+h(c.time)+'</div><div class="cbt">'+h(c.text)+'</div>';
+        bb.innerHTML='<div class="cba '+(iM?'me':'ot')+'">'+h(c.name||c.author)+' · '+h(fmtTaskDate(c.time))+'</div><div class="cbt">'+h(c.text)+'</div>';
         wr.appendChild(bb); frag.appendChild(wr);
       });
       list.appendChild(frag); list.scrollTop=list.scrollHeight;
@@ -2079,7 +2079,7 @@ function loadTaskFiles(tid) {
         var isLk=f.name.indexOf('🔗')===0;
         var div=document.createElement('div'); div.className='fi-item';
         div.innerHTML='<span class="fi-ico">'+(isLk?'🔗':'📄')+'</span>' +
-          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name.replace(/^🔗\s*/,''))+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(f.uploadedAt)+'</div></div>' +
+          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name.replace(/^🔗\s*/,''))+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
           '<button class="fi-del" onclick="deleteFile(\''+e(f.id)+'\')">🗑</button>';
         frag.appendChild(div);
       });
@@ -2377,8 +2377,8 @@ function renderStatTasks(list) {
       '<td>'+h(t.executor||'—')+'</td>' +
       '<td>'+h(t.authorName||'—')+'</td>' +
       '<td><span class="'+(SCH[t.status]||'ch cc')+'">'+h(SLAB[t.status]||t.status)+'</span></td>' +
-      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;'+(isStatOverdue(t)?'color:var(--rd);':'')+'">'+h(fmtTaskDate(t.deadline||'—'))+'</td>' +
-      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;color:var(--gr);">'+h(fmtTaskDate(t.closedAt||'—'))+'</td>' +
+      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;'+(isStatOverdue(t)?'color:var(--rd);':'')+'">'+h(fmtTaskDate(t.deadline, 'numeric'))+'</td>' +
+      '<td style="white-space:nowrap;font-family:monospace;font-size:10px;color:var(--gr);">'+h(fmtTaskDate(t.closedAt, 'numeric'))+'</td>' +
     '</tr>';
     if (open) html+='<tr class="st-det" data-for="'+h(t.id)+'"><td colspan="6">'+statDetailHtml(t)+'</td></tr>';
   });
@@ -2504,7 +2504,7 @@ function loadInfoFilesList(infoId) {
       r.files.forEach(function(f) {
         var div=document.createElement('div'); div.className='fi-item';
         div.innerHTML='<span class="fi-ico">📄</span>' +
-          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name)+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+'</div></div>' +
+          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name)+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
           '<button class="fi-del" onclick="deleteInfoFileFn(\''+e(f.id)+'\')">🗑</button>';
         frag.appendChild(div);
       });
@@ -2544,7 +2544,7 @@ function openUserDayPlan(login, name) {
   var date = document.getElementById('wlDate') ? document.getElementById('wlDate').value : '';
   if (!date) { toast('Оберіть дату в Графіку','err'); return; }
   document.getElementById('dpName').textContent = name + ' — план дня';
-  document.getElementById('dpDate').textContent = date;
+  document.getElementById('dpDate').textContent = fmtTaskDate(date, 'full');
   document.getElementById('dpSlots').innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:11px;padding:12px;">Завантаження...</div>';
   document.getElementById('dpNoSlots').style.display = 'none';
   document.getElementById('dpStatus').innerHTML = '';
@@ -2839,29 +2839,184 @@ function toast(msg, type, ms) {
 }
 
 
-// Формат дат -> dd.MM.yyyy [HH:mm]
-function fmtTaskDate(s) {
-  if (!s || s === '—') return s || '—';
-  var text=String(s);
-  var m=text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
-  if (m) {
-    var y=Number(m[1]), mo=Number(m[2]), d=Number(m[3]);
-    var date=new Date(Date.UTC(y,mo-1,d));
-    if (date.getUTCFullYear()!==y || date.getUTCMonth()!==mo-1 || date.getUTCDate()!==d) return s;
-    return m[3]+'.'+m[2]+'.'+m[1]+(m[4] && (m[4]!=='00' || m[5]!=='00')?' '+m[4]+':'+m[5]:'');
+// Без часового поясу в даті використовуємо київський час.
+function kyivParts(value) {
+  if (value == null || value === '' || value === '—') {
+    return null;
   }
-  m=text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
-  if (m) return m[1].padStart(2,'0')+'.'+m[2].padStart(2,'0')+'.'+m[3]+(m[4] && (m[4]!=='00' || m[5]!=='00')?' '+m[4]+':'+m[5]:'');
-  try {
-    var parsed=new Date(text);
-    if (isNaN(parsed.getTime())) return s;
-    var dd=String(parsed.getDate()).padStart(2,'0');
-    var mm=String(parsed.getMonth()+1).padStart(2,'0');
-    var yyyy=parsed.getFullYear();
-    var result=dd+'.'+mm+'.'+yyyy;
-    if (parsed.getHours() || parsed.getMinutes()) result+=' '+String(parsed.getHours()).padStart(2,'0')+':'+String(parsed.getMinutes()).padStart(2,'0');
-    return result;
-  } catch(_) { return s; }
+
+  const text = String(value).trim();
+  const isoDatePattern = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/;
+  const ukrainianDatePattern = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+
+  if (!(value instanceof Date)) {
+    let match = text.match(isoDatePattern);
+
+    if (!match) {
+      const ukrainianMatch = text.match(ukrainianDatePattern);
+      if (ukrainianMatch) {
+        const [original, day, month, year, hour, minute, second] = ukrainianMatch;
+        match = [original, year, month, day, hour, minute, second];
+      }
+    }
+
+    if (match) {
+      const parts = {
+        year: Number(match[1]),
+        month: Number(match[2]),
+        day: Number(match[3]),
+        hour: Number(match[4] || 0),
+        minute: Number(match[5] || 0),
+        second: Number(match[6] || 0),
+        hasTime: match[4] !== undefined
+      };
+      const calendarDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+      const validDate = parts.year >= 100
+        && calendarDate.getUTCFullYear() === parts.year
+        && calendarDate.getUTCMonth() === parts.month - 1
+        && calendarDate.getUTCDate() === parts.day;
+      const validTime = parts.hour <= 23 && parts.minute <= 59 && parts.second <= 59;
+
+      return validDate && validTime ? parts : null;
+    }
+
+    const offsetDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+    // Старі таблиці можуть повертати Thu Oct 29 2026 ... GMT+0200.
+    const legacyDatePattern = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{4}.*GMT/;
+    if (!offsetDatePattern.test(text) && !legacyDatePattern.test(text)) {
+      return null;
+    }
+  }
+
+  const instant = value instanceof Date ? value : new Date(text);
+  if (isNaN(instant.getTime())) {
+    return null;
+  }
+
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Kyiv',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  });
+  const formattedParts = {};
+  for (const part of formatter.formatToParts(instant)) {
+    formattedParts[part.type] = part.value;
+  }
+
+  return {
+    year: Number(formattedParts.year),
+    month: Number(formattedParts.month),
+    day: Number(formattedParts.day),
+    hour: Number(formattedParts.hour),
+    minute: Number(formattedParts.minute),
+    second: Number(formattedParts.second),
+    hasTime: true
+  };
+}
+
+function datePartsToUtc(parts) {
+  return Date.UTC(
+    parts.year, parts.month - 1, parts.day,
+    parts.hour, parts.minute, parts.second
+  );
+}
+
+function kyivInstant(value) {
+  if (value instanceof Date) {
+    return new Date(value.getTime());
+  }
+
+  const text = String(value || '');
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(text) || /GMT/.test(text);
+  const parts = kyivParts(value);
+  if (!parts) {
+    return new Date(NaN);
+  }
+  if (hasTimezone) {
+    return new Date(text);
+  }
+
+  const wallTime = datePartsToUtc(parts);
+  let candidateTime = wallTime;
+  const maxOffsetAttempts = 4;
+
+  // Повторно уточнюємо зсув: біля переходу на літній час він може змінитися.
+  for (let attempt = 0; attempt < maxOffsetAttempts; attempt++) {
+    const kyivTime = kyivParts(new Date(candidateTime));
+    const timezoneOffset = datePartsToUtc(kyivTime) - candidateTime;
+    const adjustedTime = wallTime - timezoneOffset;
+
+    if (adjustedTime === candidateTime) {
+      return new Date(candidateTime);
+    }
+    candidateTime = adjustedTime;
+  }
+
+  // Час у пропущеній під час переведення годинника годині не має відповідника.
+  return new Date(NaN);
+}
+
+function datePad(number) {
+  return String(number).padStart(2, '0');
+}
+
+function dateISO(value) {
+  const parts = kyivParts(value);
+  if (!parts) {
+    return '';
+  }
+
+  const date = [parts.year, datePad(parts.month), datePad(parts.day)].join('-');
+  if (!parts.hasTime) {
+    return date;
+  }
+
+  const time = [parts.hour, parts.minute, parts.second].map(datePad).join(':');
+  return date + ' ' + time;
+}
+
+function fmtTaskDate(value, style) {
+  const text = String(value);
+  const isTimeOnly = /^\d{2}:\d{2}$/.test(text)
+    && Number(text.slice(0, 2)) < 24
+    && Number(text.slice(3)) < 60;
+  if (isTimeOnly) {
+    return text;
+  }
+
+  const parts = kyivParts(value);
+  if (!parts) {
+    return value && value !== '—' ? 'Некоректна дата' : '—';
+  }
+
+  const time = parts.hasTime ? datePad(parts.hour) + ':' + datePad(parts.minute) : '';
+  if (style === 'numeric') {
+    const date = [datePad(parts.day), datePad(parts.month), parts.year].join('.');
+    return date + (time ? ' ' + time : '');
+  }
+
+  const months = [
+    'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+    'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'
+  ];
+  const weekdays = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const currentYear = kyivParts(new Date()).year;
+  let date = parts.day + ' ' + months[parts.month - 1];
+
+  if (style === 'full' || parts.year !== currentYear) {
+    date += ' ' + parts.year;
+  }
+  if (style === 'full') {
+    const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+    date = weekdays[weekday] + ', ' + date;
+  }
+
+  return date + (time ? ', ' + time : '');
 }
 function h(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function e(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\\''); }

@@ -261,11 +261,9 @@ function getAppData(callerLogin) {
         coExecName:  coExec ? ((uMap[coExec]||{}).name || coExec) : "",
         author:      author,
         authorName:  (uMap[author]||{}).name || author,
-        deadline:    r[9] instanceof Date
-          ? Utilities.formatDate(r[9], TZ, "yyyy-MM-dd HH:mm").replace(/ 00:00$/, "")
-          : r[9] ? String(r[9]).replace(/^(\d{4}-\d{2}-\d{2})T/, "$1 ").substring(0,16) : "",
-        startedAt:   r[10] instanceof Date ? Utilities.formatDate(r[10], TZ, "yyyy-MM-dd HH:mm") : r[10] ? String(r[10]).substring(0,16) : "",
-        closedAt:    r[11] instanceof Date ? Utilities.formatDate(r[11], TZ, "yyyy-MM-dd HH:mm") : r[11] ? String(r[11]).substring(0,16) : "",
+        deadline:    dateISO(r[9]),
+        startedAt:   dateISO(r[10]),
+        closedAt:    dateISO(r[11]),
         meetLink:    String(r[12]||""),
         priority:    String(r[13]||"Середній"),
         revComment:  String(r[14]||""),
@@ -307,7 +305,7 @@ function createTask(data, authorLogin) {
     if (String(data.type||"").toLowerCase() === "нарада" && deadline) {
       try {
         const cal    = CalendarApp.getDefaultCalendar();
-        const start  = new Date(deadline);
+        const start  = kyivInstant(deadline);
         const end    = new Date(start.getTime() + 3600000);
         const guests = [...execs, coExec].filter(Boolean).map(l => l.includes("@") ? l : l+"@gmail.com").join(",");
         const ev     = cal.createEvent("["+taskId+"] "+data.title, start, end, { description: data.desc||"", guests, sendInvites: true });
@@ -345,7 +343,7 @@ function createTask(data, authorLogin) {
       "🎯 Нова задача: " + data.title,
       "Постановник: " + callerName +
       "\nПріоритет: " + (data.priority||"Середній") +
-      "\nДедлайн: " + (deadline||"—") +
+      "\nДедлайн: " + fmtTaskDate(deadline, "full") +
       "\nВідділ: " + (data.dept||"—")
     );
 
@@ -401,7 +399,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
         "Задача: " + title,
         "Статус: " + newStatus,
         "Хто змінив: " + caller.name,
-        "Дата: " + nowText.substring(0,16)
+        "Дата: " + fmtTaskDate(nowText, "numeric")
       ].join("\n");
 
       // Виконавцям
@@ -414,7 +412,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
           "Задача яку ви поставили: " + title,
           "Статус: " + newStatus,
           "Виконавець: " + caller.name,
-          "Дата: " + nowText.substring(0,16)
+          "Дата: " + fmtTaskDate(nowText, "numeric")
         ].join("\n"));
       }
 
@@ -422,7 +420,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
       if (newStatus === "На доопрацювання" && revComment) {
         _notifyMany([...execs, ...(coExec ? [coExec] : [])],
           "🔄 Потрібне доопрацювання: " + title,
-          ["Задача: " + title, "Коментар:\n" + revComment, "Від: " + caller.name, "Дата: " + nowText.substring(0,16)].join("\n")
+          ["Задача: " + title, "Коментар:\n" + revComment, "Від: " + caller.name, "Дата: " + fmtTaskDate(nowText, "numeric")].join("\n")
         );
       }
 
@@ -430,7 +428,7 @@ function updateTaskStatus(taskId, newStatus, callerLogin, revComment) {
       if (newStatus === "Виконано") {
         _notifyMany([...execs, ...(coExec ? [coExec] : [])],
           "✅ Задачу прийнято: " + title,
-          ["Задача прийнята: " + title, "Прийняв: " + caller.name, "Дата: " + nowText.substring(0,16)].join("\n")
+          ["Задача прийнята: " + title, "Прийняв: " + caller.name, "Дата: " + fmtTaskDate(nowText, "numeric")].join("\n")
         );
       }
 
@@ -534,7 +532,7 @@ function getComments(taskId) {
       .getDataRange().getValues();
     return rows
       .filter((r, i) => i > 0 && String(r[1]) === String(taskId))
-      .map(r => ({ id: r[0], author: r[2], name: r[3], text: r[4], time: String(r[5]||"").substring(0,16) }));
+      .map(r => ({ id: r[0], author: r[2], name: r[3], text: r[4], time: dateISO(r[5]) }));
   } catch(_) { return []; }
 }
 
@@ -602,7 +600,7 @@ function getTaskFiles(taskId) {
         name:       String(rows[i][2]||""),
         url:        String(rows[i][3]||""),
         uploadedBy: String(rows[i][4]||""),
-        uploadedAt: String(rows[i][5]||"").substring(0,16)
+        uploadedAt: dateISO(rows[i][5])
       });
     }
     return { ok: true, files };
@@ -664,8 +662,8 @@ function getAnalytics(callerLogin, deptFilter, period) {
 
       const dept   = String(r[5]||"");
       const status = String(r[4]||"");
-      const dl     = r[9]  ? new Date(r[9])  : null;
-      const closed = r[11] ? new Date(r[11]) : null;
+      const dl     = r[9]  ? kyivInstant(r[9])  : null;
+      const closed = r[11] ? kyivInstant(r[11]) : null;
       const execs  = parseExecs(String(r[6]||""));
       const author = String(r[8]||"").toLowerCase().trim();
 
@@ -701,8 +699,8 @@ function getAnalytics(callerLogin, deptFilter, period) {
         priority:   String(r[13]||"Середній"),
         executor:   execs.map(l => uMap[l]||l).join(", "),
         authorName: uMap[author] || author,
-        deadline:   dl     ? Utilities.formatDate(dl,     TZ, "dd.MM.yyyy HH:mm") : "—",
-        closedAt:   closed ? Utilities.formatDate(closed, TZ, "dd.MM.yyyy HH:mm") : "—"
+        deadline:   dateISO(r[9]),
+        closedAt:   dateISO(r[11])
       });
     }
 
@@ -878,7 +876,7 @@ function getInfoRecords(dept, callerLogin) {
         category:  rows[i][3],
         content:   rows[i][4],
         author:    rows[i][5],
-        createdAt: String(rows[i][6]||"")
+        createdAt: dateISO(rows[i][6])
       });
     }
     return { ok: true, records: result };
@@ -891,7 +889,7 @@ function saveInfoRecord(rec, callerLogin) {
     const u   = getUser(callerLogin);
     const s   = getOrCreate("InfoRecords",
       ["id","dept","heading","category","content","author","createdAt","updatedAt"]);
-    const now = Utilities.formatDate(new Date(), TZ, "dd.MM.yyyy");
+    const now = nowStr();
 
     if (rec.id) {
       const rows = s.getDataRange().getValues();
@@ -952,7 +950,7 @@ function getInfoFiles(infoId) {
     const files = [];
     for (let i = 1; i < rows.length; i++) {
       if (!rows[i][0] || String(rows[i][1]) !== String(infoId)) continue;
-      files.push({ id: rows[i][0], name: rows[i][2], url: rows[i][3], uploadedBy: rows[i][4] });
+      files.push({ id: rows[i][0], name: rows[i][2], url: rows[i][3], uploadedBy: rows[i][4], uploadedAt: dateISO(rows[i][5]) });
     }
     return { ok: true, files };
   } catch(_) { return { ok: false, files: [] }; }
@@ -1266,7 +1264,7 @@ function _tgTaskDetail(token, chatId, u, taskId) {
     const SI     = {"Нова":"🆕","В роботі":"▶","На перевірці":"📁","На доопрацювання":"🔴","Виконано":"✅","Скасовано":"🚫"};
     let text     = (SI[status]||"•") + " <b>" + r[1] + "</b>\n" +
                    "<code>" + r[0] + "</code>\n" +
-                   "📅 " + (r[9] ? String(r[9]).substring(0,16) : "—") + " · " + r[13];
+                   "📅 " + fmtTaskDate(r[9], "full") + " · " + r[13];
     if (r[14]) text += "\n💬 " + r[14];
     const btns = [];
     if (isExec) {
@@ -1472,7 +1470,7 @@ function deadlineReminders() {
 
     for (let i = 1; i < tasks.length; i++) {
       if (!tasks[i][0] || ["Виконано","Скасовано","На перевірці"].includes(tasks[i][4])) continue;
-      const dl = tasks[i][9] ? new Date(tasks[i][9]) : null;
+      const dl = tasks[i][9] ? kyivInstant(tasks[i][9]) : null;
       if (!dl || dl < in24h || dl > in25h) continue;
       const execs  = parseExecs(String(tasks[i][6]||""));
       const author = String(tasks[i][8]||"");
@@ -1522,7 +1520,7 @@ function getAnnouncements() {
         body:      String(rows[i][2]||""),
         category:  String(rows[i][3]||"Загальне"),
         author:    String(rows[i][4]||""),
-        createdAt: String(rows[i][5]||""),
+        createdAt: dateISO(rows[i][5]),
         pinned:    rows[i][6] === true || String(rows[i][6]) === "TRUE"
       });
     }
@@ -1727,4 +1725,184 @@ function setupTestEnvironment() {
   }
   Logger.log('Test database: ' + ss().getUrl());
   Logger.log('Login: testadmin. Password is in Users!E2. Do not use real company data.');
+}
+
+// Без часового поясу в даті використовуємо київський час.
+function kyivParts(value) {
+  if (value == null || value === '' || value === '—') {
+    return null;
+  }
+
+  const text = String(value).trim();
+  const isoDatePattern = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/;
+  const ukrainianDatePattern = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+
+  if (!(value instanceof Date)) {
+    let match = text.match(isoDatePattern);
+
+    if (!match) {
+      const ukrainianMatch = text.match(ukrainianDatePattern);
+      if (ukrainianMatch) {
+        const [original, day, month, year, hour, minute, second] = ukrainianMatch;
+        match = [original, year, month, day, hour, minute, second];
+      }
+    }
+
+    if (match) {
+      const parts = {
+        year: Number(match[1]),
+        month: Number(match[2]),
+        day: Number(match[3]),
+        hour: Number(match[4] || 0),
+        minute: Number(match[5] || 0),
+        second: Number(match[6] || 0),
+        hasTime: match[4] !== undefined
+      };
+      const calendarDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+      const validDate = parts.year >= 100
+        && calendarDate.getUTCFullYear() === parts.year
+        && calendarDate.getUTCMonth() === parts.month - 1
+        && calendarDate.getUTCDate() === parts.day;
+      const validTime = parts.hour <= 23 && parts.minute <= 59 && parts.second <= 59;
+
+      return validDate && validTime ? parts : null;
+    }
+
+    const offsetDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+    // Старі таблиці можуть повертати Thu Oct 29 2026 ... GMT+0200.
+    const legacyDatePattern = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{4}.*GMT/;
+    if (!offsetDatePattern.test(text) && !legacyDatePattern.test(text)) {
+      return null;
+    }
+  }
+
+  const instant = value instanceof Date ? value : new Date(text);
+  if (isNaN(instant.getTime())) {
+    return null;
+  }
+
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Kyiv',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  });
+  const formattedParts = {};
+  for (const part of formatter.formatToParts(instant)) {
+    formattedParts[part.type] = part.value;
+  }
+
+  return {
+    year: Number(formattedParts.year),
+    month: Number(formattedParts.month),
+    day: Number(formattedParts.day),
+    hour: Number(formattedParts.hour),
+    minute: Number(formattedParts.minute),
+    second: Number(formattedParts.second),
+    hasTime: true
+  };
+}
+
+function datePartsToUtc(parts) {
+  return Date.UTC(
+    parts.year, parts.month - 1, parts.day,
+    parts.hour, parts.minute, parts.second
+  );
+}
+
+function kyivInstant(value) {
+  if (value instanceof Date) {
+    return new Date(value.getTime());
+  }
+
+  const text = String(value || '');
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(text) || /GMT/.test(text);
+  const parts = kyivParts(value);
+  if (!parts) {
+    return new Date(NaN);
+  }
+  if (hasTimezone) {
+    return new Date(text);
+  }
+
+  const wallTime = datePartsToUtc(parts);
+  let candidateTime = wallTime;
+  const maxOffsetAttempts = 4;
+
+  // Повторно уточнюємо зсув: біля переходу на літній час він може змінитися.
+  for (let attempt = 0; attempt < maxOffsetAttempts; attempt++) {
+    const kyivTime = kyivParts(new Date(candidateTime));
+    const timezoneOffset = datePartsToUtc(kyivTime) - candidateTime;
+    const adjustedTime = wallTime - timezoneOffset;
+
+    if (adjustedTime === candidateTime) {
+      return new Date(candidateTime);
+    }
+    candidateTime = adjustedTime;
+  }
+
+  // Час у пропущеній під час переведення годинника годині не має відповідника.
+  return new Date(NaN);
+}
+
+function datePad(number) {
+  return String(number).padStart(2, '0');
+}
+
+function dateISO(value) {
+  const parts = kyivParts(value);
+  if (!parts) {
+    return '';
+  }
+
+  const date = [parts.year, datePad(parts.month), datePad(parts.day)].join('-');
+  if (!parts.hasTime) {
+    return date;
+  }
+
+  const time = [parts.hour, parts.minute, parts.second].map(datePad).join(':');
+  return date + ' ' + time;
+}
+
+function fmtTaskDate(value, style) {
+  const text = String(value);
+  const isTimeOnly = /^\d{2}:\d{2}$/.test(text)
+    && Number(text.slice(0, 2)) < 24
+    && Number(text.slice(3)) < 60;
+  if (isTimeOnly) {
+    return text;
+  }
+
+  const parts = kyivParts(value);
+  if (!parts) {
+    return value && value !== '—' ? 'Некоректна дата' : '—';
+  }
+
+  const time = parts.hasTime ? datePad(parts.hour) + ':' + datePad(parts.minute) : '';
+  if (style === 'numeric') {
+    const date = [datePad(parts.day), datePad(parts.month), parts.year].join('.');
+    return date + (time ? ' ' + time : '');
+  }
+
+  const months = [
+    'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+    'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'
+  ];
+  const weekdays = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const currentYear = kyivParts(new Date()).year;
+  let date = parts.day + ' ' + months[parts.month - 1];
+
+  if (style === 'full' || parts.year !== currentYear) {
+    date += ' ' + parts.year;
+  }
+  if (style === 'full') {
+    const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+    date = weekdays[weekday] + ', ' + date;
+  }
+
+  return date + (time ? ', ' + time : '');
 }
