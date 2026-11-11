@@ -1324,7 +1324,10 @@ function doLogin() {
 
 function logout() {
   sessionStorage.removeItem('ttv5');
-  try { sessionStorage.removeItem('tt_users'); } catch(_) {}
+  try {
+    sessionStorage.removeItem('tt_users');
+    sessionStorage.removeItem('tt_active_tab');
+  } catch(_) {}
   me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[];
   selExecs=[]; filesId=''; selFile=null; selInfoFile=null;
   if (autoT) clearInterval(autoT);
@@ -1368,7 +1371,7 @@ function activateApp() {
     showE('wt-team'); showE('planCard');
     buildMNav('admin');
     // початкова вкладка — Мої завдання
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   // ── Дирекція: Завдання від мене (головне), Мої завдання, Аналітика, Графік, База знань ──
@@ -1382,7 +1385,7 @@ function activateApp() {
     var pall = document.getElementById('pc-all'); if(pall) pall.style.display='none';
     buildMNav('director');
     // початкова вкладка для Дирекції — "Завдання від мене"
-    goTab('mine');
+    goTab(getInitialTab('mine'));
   }
 
   // ── Керівник: все крім адмін ──
@@ -1392,7 +1395,7 @@ function activateApp() {
     document.getElementById('exFilt').style.display='flex';
     showE('wt-team'); showE('planCard');
     buildMNav('manager');
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   // ── Співробітник: Мої завдання, Графік, База знань, Налаштування ──
@@ -1407,7 +1410,7 @@ function activateApp() {
     var planC = document.getElementById('planCard'); if(planC) planC.style.display='none';
     var aib   = document.getElementById('addInfoBtn'); if(aib) aib.style.display='none';
     buildMNav('staff');
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   loadInfoFromServer();
@@ -1454,6 +1457,14 @@ function mkMB(id,tab,ico,lbl,on) {
 // ══════════════════════════════════════════
 //  НАВІГАЦІЯ
 // ══════════════════════════════════════════
+function getInitialTab(fallback) {
+  try {
+    var savedTab=sessionStorage.getItem('tt_active_tab');
+    if (savedTab && document.getElementById('tab-'+savedTab)) return savedTab;
+  } catch(_) {}
+  return fallback;
+}
+
 function goTab(t) {
   // Захист: Дирекція не бачить Архів і Всі завдання
   if (me && me.role==='Дирекція' && (t==='archive' || t==='all')) {
@@ -1463,6 +1474,7 @@ function goTab(t) {
   if (me && !RMGR.includes(me.role) && (t==='mine'||t==='all'||t==='archive'||t==='stats')) {
     goTab('exec'); return;
   }
+  try { sessionStorage.setItem('tt_active_tab', t); } catch(_) {}
   document.querySelectorAll('[id^="tab-"]').forEach(function(s){ s.style.display='none'; });
   var el=document.getElementById('tab-'+t); if (el) el.style.display='';
   document.querySelectorAll('.sbn').forEach(function(b){ b.classList.remove('on'); });
