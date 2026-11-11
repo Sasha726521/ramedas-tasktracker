@@ -1603,7 +1603,7 @@ function renderMine() {
   var tasks=mineTasks.filter(function(t) {
     if (t.title==='title' || t.id==='id') return false; // службові рядки
     if (fs && t.status!==fs) return false;
-    if (q && t.title.toLowerCase().indexOf(q)===-1) return false;
+    if (q && t.title.toLowerCase().indexOf(q)===-1 && t.id.toLowerCase().indexOf(q)===-1) return false;
     return true;
   }).slice().reverse();
   if (!tasks.length) { list.innerHTML=''; empty.style.display=''; return; }
@@ -1651,7 +1651,7 @@ function renderArch() {
     if (!['Виконано','Скасовано'].includes(t.status)) return false;
     if (me.role==='Керівник' && t.dept!==me.dept && t.executors.indexOf(ml)===-1 && t.author!==ml) return false;
     if (fs && t.status!==fs) return false;
-    if (q && t.title.toLowerCase().indexOf(q)===-1) return false;
+    if (q && t.title.toLowerCase().indexOf(q)===-1 && t.id.toLowerCase().indexOf(q)===-1) return false;
     return true;
   }).slice().reverse();
   if (!tasks.length) { list.innerHTML=''; empty.style.display=''; return; }
