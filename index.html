@@ -24,6 +24,7 @@
   <style>
 /* ════════════════ CSS ЗМІННІ (темна/світла теми) ════════════════ */
 :root {
+  color-scheme: dark;
   --bg:#15120b; --sf:#1e1a12; --sf2:#282218; --sf3:#332c20;
   --bd:rgba(255,238,214,.09); --bd2:rgba(255,238,214,.17);
   --tx:#f4ede0; --tx2:#b0a48d; --tx3:#7a6f57;
@@ -32,6 +33,7 @@
   --r:13px; --rl:18px;
 }
 body.light {
+  color-scheme: light;
   --bg:#f7f2ea; --sf:#ffffff; --sf2:#fbf6ee; --sf3:#f2ebdf;
   --bd:rgba(70,52,24,.10); --bd2:rgba(70,52,24,.17);
   --tx:#2a2016; --tx2:#7c7060; --tx3:#a89c86;
@@ -191,6 +193,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 .rvb{background:rgba(238,106,78,.07);border:1px solid rgba(238,106,78,.18);border-radius:9px;padding:7px 11px;margin:6px 0;}
 .rvbl{font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rd);margin-bottom:2px;}
 .rvbt{font-size:11px;color:#ffaab5;line-height:1.4;}
+body.light .rvbt{color:#b42318;}
 /* Таймлайн */
 .tl-row{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0;}
 .tl-item{display:flex;align-items:center;gap:4px;font-size:9px;padding:2px 7px;border-radius:99px;}

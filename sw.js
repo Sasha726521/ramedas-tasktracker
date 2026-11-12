@@ -10,11 +10,12 @@
 // Тепер: спочатку йде запит у мережу за свіжою версією, і тільки
 // якщо мережі немає (офлайн) — використовується кеш.
 
-var CACHE = 'ramedas-test-' + self.registration.scope + '-v1';
+var CACHE = 'ramedas-test-' + self.registration.scope + '-v2';
 var ASSETS = [
   './',
   './index.html',
-  'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap'
+  './favicon.png',
+  'https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
 ];
 
 // Встановлення — кешуємо основні файли
