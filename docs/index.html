@@ -59,7 +59,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .spl-bar{width:140px;height:3px;background:var(--sf2);border-radius:99px;overflow:hidden;margin-top:6px;}
 .spl-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));border-radius:99px;animation:fb 1.6s ease-out forwards;}
 @keyframes fb{from{width:0;}to{width:100%;}}
-.task-loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:24px;color:var(--tx2);font-size:12px;}
+.task-loading,.task-load-error{display:flex;align-items:center;justify-content:center;gap:9px;padding:24px;color:var(--tx2);font-size:12px;}
 .task-spinner{width:16px;height:16px;border:2px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:task-spin .75s linear infinite;}
 @keyframes task-spin{to{transform:rotate(360deg);}}
 /* ════════════════ TOP BAR ════════════════ */
@@ -106,6 +106,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .mnb .lb{font-size:7px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
 .mnd{position:absolute;top:2px;right:calc(50% - 13px);width:6px;height:6px;background:var(--rd);border-radius:99px;border:1.5px solid var(--sf);display:none;}
 .mnd.on{display:block;}
+.mobile-more-list{display:flex;flex-direction:column;gap:7px;}
+.mobile-more-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 13px;border:1px solid var(--bd);border-radius:10px;background:var(--sf2);color:var(--tx);font-family:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;}
+.mobile-more-item:after{content:'›';color:var(--tx3);font-size:19px;line-height:1;}
+.mobile-more-item.on{border-color:rgba(247,132,17,.4);color:var(--ac);background:rgba(247,132,17,.08);}
 /* ════════════════ CONTENT ════════════════ */
 .ct{flex:1;padding:22px;max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
 .ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
@@ -202,7 +206,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 .sinp:focus{width:180px;border-color:rgba(247,132,17,.4);}
 .sinp::placeholder{color:var(--tx3);}
 /* ════════════════ STATS ════════════════ */
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
 .scard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px;position:relative;overflow:hidden;}
 .scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
 .scard.bl::before{background:linear-gradient(90deg,var(--ac),var(--ac2));}
@@ -403,7 +407,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
     <div class="afl"><label>Пароль</label><input id="aPs" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <div id="aErr" class="aerr" style="display:none;"></div>
     <button class="abtn" id="aBtn" onclick="doLogin()">Увійти в систему</button>
-    <div class="aft">© 2025 Рамедас Україна · RamPuls v5</div>
+    <div class="aft">© 2026 Рамедас Україна · RamPuls v5</div>
   </div>
 </div>
 
@@ -743,7 +747,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
         <!-- Google Drive -->
         <div class="card" style="margin-top:12px;">
           <div class="lbl" style="margin-bottom:9px;">Google Drive</div>
-          <div style="font-size:11px;color:var(--tx2);line-height:1.6;">Файли завантажуються у папки <span style="font-family:monospace;background:var(--sf2);padding:1px 5px;border-radius:4px;">RamPuls_Files_[Відділ]</span> автоматично.</div>
+          <div style="font-size:11px;color:var(--tx2);line-height:1.6;">Файли завантажуються у папки <span style="font-family:monospace;background:var(--sf2);padding:1px 5px;border-radius:4px;">TaskTracker_Files_[Відділ]</span> автоматично.</div>
           <button class="btn bgh bsm" onclick="window.open('https://drive.google.com','_blank')" style="margin-top:9px;">Відкрити Google Drive</button>
         </div>
       </section>
@@ -781,7 +785,14 @@ select.inp option{background:var(--sf2);color:var(--tx);}
     <button class="mnb on" id="mb-exec" onclick="goTab('exec')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg></span><span class="lb">Завдання</span><span class="mnd" id="dot-fix"></span></button>
     <button class="mnb"    id="mb-archive" onclick="goTab('archive')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"></path><path d="M10 12h4"></path></svg></span><span class="lb">Архів</span></button>
     <button class="mnb"    id="mb-workload" onclick="goTab('workload')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg></span><span class="lb">Графік</span></button>
-    <button class="mnb"    id="mb-settings" onclick="goTab('settings')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg></span><span class="lb">Ще</span></button>
+    <button class="mnb" id="mb-more" type="button" aria-label="Ще розділи" aria-controls="mobileMoreMenu" aria-expanded="false" onclick="openMobileMore()"><span class="ic2">⋯</span><span class="lb">Ще</span></button>
+  </div>
+</div>
+
+<div id="mobileMoreMenu" class="ovl" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="mobileMoreTitle" onclick="if(event.target===this)closeMobileMore()">
+  <div class="mdl su">
+    <div class="mhdr"><div class="mttl" id="mobileMoreTitle">Інші розділи</div><button class="mcl" type="button" aria-label="Закрити" onclick="closeMobileMore()">×</button></div>
+    <div id="mobileMoreList" class="mobile-more-list"></div>
   </div>
 </div>
 
@@ -790,7 +801,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 <!-- Форма задачі -->
 <div id="mTask" class="ovl" style="display:none;">
   <div class="mdl su">
-    <div class="mhdr"><div class="mttl" id="mTT">Нова задача</div><button class="mcl" onclick="closeM('mTask')">x</button></div>
+    <div class="mhdr"><div class="mttl" id="mTT">Нова задача</div><button class="mcl" onclick="closeM('mTask')">×</button></div>
     <div id="taskSubmitLoading" class="task-submit-overlay" style="display:none;" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Створюємо задачу...</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div><label class="lbl">Назва *</label><input id="fTi" type="text" class="inp" placeholder="Чітко та конкретно..."></div>
@@ -821,7 +832,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 <!-- Доопрацювання -->
 <div id="mRev" class="ovl" style="display:none;z-index:300;">
   <div class="mdl su">
-    <div class="mhdr"><div class="mttl">На доопрацювання</div><button class="mcl" onclick="closeM('mRev')">x</button></div>
+    <div class="mhdr"><div class="mttl">На доопрацювання</div><button class="mcl" onclick="closeM('mRev')">×</button></div>
     <div style="background:var(--sf2);border-radius:9px;padding:9px 11px;margin-bottom:11px;">
       <div style="font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:2px;">Задача</div>
       <div id="rvTN" style="font-size:11px;font-weight:700;color:var(--tx);font-family:'JetBrains Mono',monospace;"></div>
@@ -839,7 +850,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
   <div class="mdl" style="height:84vh;display:flex;flex-direction:column;">
     <div class="mhdr" style="flex-shrink:0;">
       <div><div class="mttl"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1.3-4.2A8 8 0 1121 12z"></path></svg> Коментарі</div><div id="cmTL" style="font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace;margin-top:1px;"></div></div>
-      <button class="mcl" onclick="closeM('mComm')">x</button>
+      <button class="mcl" onclick="closeM('mComm')">×</button>
     </div>
     <div id="cmList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;min-height:0;padding:3px 0;"></div>
     <div style="display:flex;gap:7px;flex-shrink:0;margin-top:9px;">
@@ -854,7 +865,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
   <div class="mdl su">
     <div class="mhdr">
       <div><div class="mttl">Файли та посилання</div><div id="fiTL" style="font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace;margin-top:1px;"></div></div>
-      <button class="mcl" onclick="closeM('mFiles')">x</button>
+      <button class="mcl" onclick="closeM('mFiles')">×</button>
     </div>
     <div id="fiList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px;min-height:36px;"></div>
     <div style="border-top:1px solid var(--bd);padding-top:12px;display:flex;flex-direction:column;gap:9px;">
@@ -882,7 +893,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
         <div id="dId" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);margin-bottom:2px;"></div>
         <div id="dTi" style="font-size:15px;font-weight:800;color:var(--tx);line-height:1.3;"></div>
       </div>
-      <button class="mcl" onclick="closeM('mDet')" style="flex-shrink:0;margin-left:9px;">x</button>
+      <button class="mcl" onclick="closeM('mDet')" style="flex-shrink:0;margin-left:9px;">×</button>
     </div>
     <div id="dRvB" style="display:none;" class="rvb"><div class="rvbl"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1.3-4.2A8 8 0 1121 12z"></path></svg> Коментар керівника</div><div id="dRvT" class="rvbt"></div></div>
     <div id="dDe" style="display:none;font-size:11px;color:var(--tx2);background:var(--sf2);border-radius:9px;padding:9px 11px;margin-bottom:7px;white-space:pre-line;line-height:1.5;"></div>
@@ -912,7 +923,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 <!-- Персонал -->
 <div id="mUser" class="ovl" style="display:none;">
   <div class="mdl su">
-    <div class="mhdr"><div class="mttl" id="mUT">Новий співробітник</div><button class="mcl" onclick="closeM('mUser')">x</button></div>
+    <div class="mhdr"><div class="mttl" id="mUT">Новий співробітник</div><button class="mcl" onclick="closeM('mUser')">×</button></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
       <div style="grid-column:span 2;"><label class="lbl">ПІБ</label><input id="uNm" type="text" class="inp" placeholder="Прізвище Ім'я По-батькові"></div>
       <div><label class="lbl">Логін (email)</label><input id="uLg" type="email" class="inp" placeholder="email@gmail.com"></div>
@@ -929,7 +940,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 <!-- База знань — редактор -->
 <div id="mInfo" class="ovl" style="display:none;">
   <div class="mdl su">
-    <div class="mhdr"><div class="mttl" id="mIT">Новий запис</div><button class="mcl" onclick="closeM('mInfo')">x</button></div>
+    <div class="mhdr"><div class="mttl" id="mIT">Новий запис</div><button class="mcl" onclick="closeM('mInfo')">×</button></div>
     <div style="display:flex;flex-direction:column;gap:9px;">
       <div><label class="lbl">Відділ</label><select id="iDp" class="inp"></select></div>
       <div><label class="lbl">Заголовок</label><input id="iHd" type="text" class="inp" placeholder="Назва запису..."></div>
@@ -1271,6 +1282,7 @@ var SLAB = {'Нова':'Нова','В роботі':'В роботі','На пе
 // ══════════════════════════════════════════
 var me=null, rawUsers=[], allTasks=[], infoRecs=[], planSlots=[], statTasksAll=[];
 var execTasks=[], mineTasks=[];
+var tasksLoaded=false, tasksLoadState='loading';
 var selExecs=[], editTId=null, editUId=null, editIId=null;
 var taskSubmitting=false;
 var revId='', commId='', curDetId='', filesId='', infoFilesId='';
@@ -1402,8 +1414,12 @@ function doLogin() {
 function logout() {
   localStorage.removeItem('ttv5');
   sessionStorage.removeItem('ttv5');
-  try { sessionStorage.removeItem('tt_users'); } catch(_) {}
+  try {
+    sessionStorage.removeItem('tt_users');
+    sessionStorage.removeItem('tt_active_tab');
+  } catch(_) {}
   me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[]; taskDataReady=false;
+  tasksLoaded=false; tasksLoadState='loading';
   selExecs=[]; filesId=''; selectedTaskFiles=[]; selInfoFile=null;
   if (autoT) clearInterval(autoT);
   document.getElementById('app').classList.remove('on');
@@ -1446,7 +1462,7 @@ function activateApp() {
     showE('wt-team'); showE('planCard');
     buildMNav('admin');
     // початкова вкладка — Мої завдання
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   // ── Дирекція: Завдання від мене (головне), Мої завдання, Аналітика, Графік, База знань ──
@@ -1460,7 +1476,7 @@ function activateApp() {
     var pall = document.getElementById('pc-all'); if(pall) pall.style.display='none';
     buildMNav('director');
     // початкова вкладка для Дирекції — "Завдання від мене"
-    goTab('mine');
+    goTab(getInitialTab('mine'));
   }
 
   // ── Керівник: все крім адмін ──
@@ -1470,7 +1486,7 @@ function activateApp() {
     document.getElementById('exFilt').style.display='flex';
     showE('wt-team'); showE('planCard');
     buildMNav('manager');
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   // ── Співробітник: Мої завдання, Графік, База знань, Налаштування ──
@@ -1485,7 +1501,7 @@ function activateApp() {
     var planC = document.getElementById('planCard'); if(planC) planC.style.display='none';
     var aib   = document.getElementById('addInfoBtn'); if(aib) aib.style.display='none';
     buildMNav('staff');
-    goTab('exec');
+    goTab(getInitialTab('exec'));
   }
 
   loadInfoFromServer();
@@ -1497,31 +1513,67 @@ function activateApp() {
 function buildMNav(roleType) {
   var g=document.getElementById('mng');
   if (roleType === 'admin' || roleType === 'manager') {
-    // Адмін і Керівник: 5 кнопок
+    // Адмін і Керівник: основні розділи та меню додаткових
     g.style.gridTemplateColumns='repeat(5,1fr)';
     g.innerHTML=
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Задачі',true)+
       mkMB('mb-mine','mine','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"></path><path d="M12 3v12M8 7l4-4 4 4"></path></svg>','Мої',false)+
       mkMB('mb-all','all','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>','Всі',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   } else if (roleType === 'director') {
-    // Дирекція: 4 кнопки — без Архіву і Всіх задач
+    // Дирекція: без Архіву і Всіх задач
     g.style.gridTemplateColumns='repeat(4,1fr)';
     g.innerHTML=
       mkMB('mb-mine','mine','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"></path><path d="M12 3v12M8 7l4-4 4 4"></path></svg>','Поставив',true)+
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Мої',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   } else {
-    // Співробітник: 4 кнопки — Задачі, Оголошення, Графік, Ще
+    // Співробітник: основні розділи та меню додаткових
     g.style.gridTemplateColumns='repeat(4,1fr)';
     g.innerHTML=
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Задачі',true)+
       mkMB('mb-ann','ann','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 10v4a1 1 0 001 1h2l4 4V5L7 9H5a1 1 0 00-1 1z"></path><path d="M16 8.5a4 4 0 010 7"></path></svg>','Новини',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   }
+  buildMobileMore(roleType);
+}
+function mkMoreMB() {
+  return '<button class="mnb" id="mb-more" type="button" aria-label="Ще розділи" aria-controls="mobileMoreMenu" aria-expanded="false" onclick="openMobileMore()">' +
+    '<span class="ic2">⋯</span><span class="lb">Ще</span></button>';
+}
+function buildMobileMore(roleType) {
+  var items = [
+    {tab:'archive', label:'Архів'},
+    {tab:'stats', label:'Аналітика'},
+    {tab:'info', label:'База знань'},
+    {tab:'ann', label:'Оголошення'},
+    {tab:'admin', label:'Адміністрування'},
+    {tab:'settings', label:'Налаштування'}
+  ];
+  if (roleType === 'manager') items = items.filter(function(item) { return item.tab !== 'admin'; });
+  if (roleType === 'director') items = items.filter(function(item) { return item.tab !== 'archive' && item.tab !== 'admin'; });
+  if (roleType === 'staff') items = items.filter(function(item) {
+    return item.tab === 'info' || item.tab === 'settings';
+  });
+  document.getElementById('mobileMoreList').innerHTML = items.map(function(item) {
+    return '<button class="mobile-more-item" type="button" data-mobile-tab="' + item.tab +
+      '" onclick="goTab(\'' + item.tab + '\');closeMobileMore()">' + item.label + '</button>';
+  }).join('');
+}
+function openMobileMore() {
+  var menu=document.getElementById('mobileMoreMenu');
+  document.getElementById('mb-more').setAttribute('aria-expanded','true');
+  menu.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeMobileMore() {
+  var menu=document.getElementById('mobileMoreMenu');
+  menu.style.display='none';
+  document.getElementById('mb-more').setAttribute('aria-expanded','false');
+  document.body.style.overflow='';
 }
 function mkMB(id,tab,ico,lbl,on) {
   return '<button class="mnb'+(on?' on':'')+'" id="'+id+'" onclick="goTab(\''+tab+'\')">' +
@@ -1532,6 +1584,14 @@ function mkMB(id,tab,ico,lbl,on) {
 // ══════════════════════════════════════════
 //  НАВІГАЦІЯ
 // ══════════════════════════════════════════
+function getInitialTab(fallback) {
+  try {
+    var savedTab=sessionStorage.getItem('tt_active_tab');
+    if (savedTab && document.getElementById('tab-'+savedTab)) return savedTab;
+  } catch(_) {}
+  return fallback;
+}
+
 function resetInvalidStatsDateRange() {
   var period=document.getElementById('stPer');
   if (!period || period.value!=='custom') return;
@@ -1543,6 +1603,10 @@ function resetInvalidStatsDateRange() {
 }
 
 function goTab(t) {
+  // Адміністрування доступне тільки адміну
+  if (me && me.role !== 'Адмін' && t === 'admin') {
+    goTab('exec'); return;
+  }
   // Захист: Дирекція не бачить Архів і Всі завдання
   if (me && me.role==='Дирекція' && (t==='archive' || t==='all')) {
     goTab('mine'); return;
@@ -1552,12 +1616,17 @@ function goTab(t) {
     goTab('exec'); return;
   }
   if (t!=='stats') resetInvalidStatsDateRange();
+  try { sessionStorage.setItem('tt_active_tab', t); } catch(_) {}
   document.querySelectorAll('[id^="tab-"]').forEach(function(s){ s.style.display='none'; });
   var el=document.getElementById('tab-'+t); if (el) el.style.display='';
   document.querySelectorAll('.sbn').forEach(function(b){ b.classList.remove('on'); });
   var pc=document.getElementById('pc-'+t); if (pc) pc.classList.add('on');
   document.querySelectorAll('.mnb').forEach(function(b){ b.classList.remove('on'); });
   var mb=document.getElementById('mb-'+t); if (mb) mb.classList.add('on');
+  else document.getElementById('mb-more').classList.add('on');
+  document.querySelectorAll('[data-mobile-tab]').forEach(function(b) {
+    b.classList.toggle('on', b.getAttribute('data-mobile-tab')===t);
+  });
 
   if (t==='exec')    renderExec();
   if (t==='mine')    renderMine();
@@ -1599,20 +1668,27 @@ function startAutoRefresh() {
 //  ДАНІ
 // ══════════════════════════════════════════
 function refresh(showTaskLoading) {
-  if (showTaskLoading) {
-    document.getElementById('alList').innerHTML='<div class="task-loading" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Завантажуємо задачі...</div>';
-    document.getElementById('alEmpty').style.display='none';
+  if (!tasksLoaded || showTaskLoading) {
+    tasksLoadState='loading';
+    if (tasksLoaded) renderAll();
+    else buildViews();
   }
   barOn();
   google.script.run
     .withSuccessHandler(function(r) {
       barOff();
       if (!r||!r.ok) {
-        if (showTaskLoading) renderAll();
+        if (tasksLoadState==='loading') {
+          tasksLoadState='error';
+          if (tasksLoaded) renderAll();
+          else buildViews();
+        }
         toast((r&&r.err)||'Помилка завантаження','err');
         return;
       }
       allTasks = r.tasks||[];
+      tasksLoaded=true;
+      tasksLoadState='loaded';
       if (r.users && r.users.length) {
         rawUsers = [['h','h','h','h','h','h']].concat(r.users.map(function(u){
           return [u.login,u.name,u.dept,u.role,'',u.email||''];
@@ -1623,7 +1699,15 @@ function refresh(showTaskLoading) {
       taskDataReady=true;
       openTaskFromUrl();
     })
-    .withFailureHandler(function(){ barOff(); if (showTaskLoading) renderAll(); toast("Помилка з'єднання",'err'); })
+    .withFailureHandler(function(){
+      barOff();
+      if (tasksLoadState==='loading') {
+        tasksLoadState='error';
+        if (tasksLoaded) renderAll();
+        else buildViews();
+      }
+      toast("Помилка з'єднання",'err');
+    })
     .getAppData(me.login);
 }
 
@@ -1661,6 +1745,15 @@ function setEF(s) {
   var imap = {'':'fc-a','Нова':'fc-n','В роботі':'fc-w','На перевірці':'fc-r','На доопрацювання':'fc-f','Виконано':'fc-d'};
   var ci = document.getElementById(imap[s]||'fc-a'); if (ci) ci.classList.add('on');
   renderExec();
+}
+
+function renderTaskLoadState(list, empty) {
+  if (tasksLoadState==='loaded') return false;
+  list.innerHTML=tasksLoadState==='error'
+    ? '<div class="task-load-error" role="alert">Не вдалося завантажити задачі. <button class="btn bgh bsm" onclick="refresh()">Спробувати ще</button></div>'
+    : '<div class="task-loading" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Завантажуємо задачі...</div>';
+  empty.style.display='none';
+  return true;
 }
 
 
@@ -1719,6 +1812,7 @@ function showEmptyTasks(section, hasFilters) {
 function renderExec() {
   var q=updateTaskSearch('ex');
   var list=document.getElementById('exList'), empty=document.getElementById('exEmpty');
+  if (renderTaskLoadState(list, empty)) return;
   // Показуємо ВСІ задачі де я виконавець — включно виконані/архівні
   var tasks=execTasks.filter(function(t) {
     if (t.title==='title' || t.id==='id') return false; // службові рядки
@@ -1753,6 +1847,7 @@ function renderMine() {
   var q=updateTaskSearch('mn');
   var list=document.getElementById('mnList'), empty=document.getElementById('mnEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var fs=document.getElementById('mnFS')?document.getElementById('mnFS').value:'';
   var tasks=mineTasks.filter(function(t) {
     if (t.title==='title' || t.id==='id') return false; // службові рядки
@@ -1774,6 +1869,7 @@ function renderAll() {
   var q=updateTaskSearch('al');
   var list=document.getElementById('alList'), empty=document.getElementById('alEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var ml=me.login.toLowerCase().trim();
   var fs=document.getElementById('alFS')?document.getElementById('alFS').value:'';
   var fd=document.getElementById('alFD')?document.getElementById('alFD').value:'';
@@ -1798,6 +1894,7 @@ function renderArch() {
   var q=updateTaskSearch('ar');
   var list=document.getElementById('arList'), empty=document.getElementById('arEmpty');
   if (!list) return;
+  if (renderTaskLoadState(list, empty)) return;
   var ml=me.login.toLowerCase().trim();
   var fs=document.getElementById('arFS')?document.getElementById('arFS').value:'';
   var tasks=allTasks.filter(function(t) {
@@ -1977,7 +2074,10 @@ function openDet(tid, fromUrl) {
   document.getElementById('dSt').innerHTML='<span class="'+(SCH[t.status]||'ch cc')+'">'+h(SLAB[t.status]||t.status)+'</span>';
   document.getElementById('dPr').textContent=t.priority;
   document.getElementById('dTy').textContent=t.type;
-  document.getElementById('dDl').textContent=fmtTaskDate(t.deadline, 'full');
+  var dlEl=document.getElementById('dDl');
+  dlEl.textContent=fmtTaskDate(t.deadline, 'full');
+  var isOvDl=t.deadline && kyivInstant(t.deadline)<new Date() && !['Виконано','Скасовано'].includes(t.status);
+  dlEl.style.color=isOvDl?'var(--rd)':'';
   var exStr=t.execNames||(t.executors[0]||'—');
   if (t.coExecName) exStr+=' + '+t.coExecName+' (суміжний)';
   if (t.execDepts) exStr+=' (🏢 '+t.execDepts+')';
@@ -1993,9 +2093,8 @@ function openDet(tid, fromUrl) {
 
   // Таймлайн
   var tl=document.getElementById('dTL'); tl.innerHTML='';
-  if (t.deadline||t.startedAt||t.closedAt) {
+  if (t.startedAt||t.closedAt) {
     var tlH='<div class="tl-row">';
-    if (t.deadline) { var isOv=kyivInstant(t.deadline)<new Date()&&!['Виконано','Скасовано'].includes(t.status); tlH+='<span class="tl-item '+(isOv?'tl-dl over':'tl-dl')+'"><b>Дедлайн:</b> '+h(fmtTaskDate(t.deadline))+'</span>'; }
     if (t.startedAt) tlH+='<span class="tl-item tl-st"><b>Розпочато:</b> '+h(fmtTaskDate(t.startedAt))+'</span>';
     if (t.closedAt)  tlH+='<span class="tl-item tl-cl"><b>Закрито:</b> '+h(fmtTaskDate(t.closedAt))+'</span>';
     tlH+='</div>'; tl.innerHTML=tlH;
@@ -2007,7 +2106,7 @@ function openDet(tid, fromUrl) {
     var btn=document.createElement('button'); btn.className='btn bp bfl';
     if (t.status==='Нова')               { btn.textContent='Взяти в роботу'; btn.onclick=function(){ qs(t.id,'В роботі'); closeM('mDet'); }; }
     else if (t.status==='В роботі')      { btn.textContent='Надіслати на перевірку'; btn.style.cssText='background:var(--am);color:#000;width:100%;'; btn.onclick=function(){ qs(t.id,'На перевірці'); closeM('mDet'); }; }
-    else if (t.status==='На доопрацювання') { btn.textContent='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M20 11a8 8 0 10-2 5"></path><path d="M20 5v6h-6"></path></svg> Після виправлення'; btn.style.cssText='background:#f0620f;color:#fff;width:100%;'; btn.onclick=function(){ qs(t.id,'На перевірці'); closeM('mDet'); }; }
+    else if (t.status==='На доопрацювання') { btn.innerHTML='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M20 11a8 8 0 10-2 5"></path><path d="M20 5v6h-6"></path></svg> Після виправлення'; btn.style.cssText='background:#f0620f;color:#fff;width:100%;'; btn.onclick=function(){ qs(t.id,'На перевірці'); closeM('mDet'); }; }
     else btn=null;
     if (btn) ad.appendChild(btn);
   }
@@ -2404,7 +2503,10 @@ function uploadNextTaskFile(batch) {
   }
   rd.onload=function(ev) {
     var result=ev.target.result;
-    if (typeof result!=='string'||result.indexOf(',')<0) { finish(false); return; }
+    if (typeof result!=='string'||result.indexOf(',')<0) {
+      finish(false);
+      return;
+    }
     _callAPI('uploadTaskFile',[batch.taskId,file.name,result.split(',')[1],file.type,batch.caller],
       function(r){finish(!!(r&&r.ok));},
       function(){finish(false);}
@@ -3116,7 +3218,7 @@ function renderAnnouncements(items) {
       var slot = div.querySelector('.ann-edit-slot');
       if (slot) {
         var btn = document.createElement('button');
-        btn.textContent = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20h4L18.5 9.5a2 2 0 00-3-3L5 17v3z"></path></svg> Ред';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20h4L18.5 9.5a2 2 0 00-3-3L5 17v3z"></path></svg> Ред';
         btn.style.cssText = 'font-size:10px;font-weight:700;color:var(--ac);background:none;border:none;cursor:pointer;font-family:inherit;margin-left:auto;';
         (function(aid){ btn.onclick = function(){ openAnnEdit(aid); }; })(a.id);
         slot.replaceWith(btn);
@@ -3450,7 +3552,7 @@ function e(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\\''); }
         <div class="mttl" id="dpName">План дня</div>
         <div id="dpDate" style="font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace;margin-top:1px;"></div>
       </div>
-      <button class="mcl" onclick="closeM('mDayPlan')">x</button>
+      <button class="mcl" onclick="closeM('mDayPlan')">×</button>
     </div>
     <!-- Статус дня -->
     <div id="dpStatus" style="margin-bottom:12px;"></div>
@@ -3466,7 +3568,7 @@ function e(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\\''); }
   <div class="mdl su">
     <div class="mhdr">
       <div class="mttl" id="mAnnT">Нове оголошення</div>
-      <button class="mcl" onclick="closeM('mAnn')">x</button>
+      <button class="mcl" onclick="closeM('mAnn')">×</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div><label class="lbl">Заголовок *</label><input id="annTitle" type="text" class="inp" placeholder="Назва оголошення..."></div>
