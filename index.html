@@ -104,6 +104,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .mnb .lb{font-size:7px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
 .mnd{position:absolute;top:2px;right:calc(50% - 13px);width:6px;height:6px;background:var(--rd);border-radius:99px;border:1.5px solid var(--sf);display:none;}
 .mnd.on{display:block;}
+.mobile-more-list{display:flex;flex-direction:column;gap:7px;}
+.mobile-more-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 13px;border:1px solid var(--bd);border-radius:10px;background:var(--sf2);color:var(--tx);font-family:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;}
+.mobile-more-item:after{content:'›';color:var(--tx3);font-size:19px;line-height:1;}
+.mobile-more-item.on{border-color:rgba(247,132,17,.4);color:var(--ac);background:rgba(247,132,17,.08);}
 /* ════════════════ CONTENT ════════════════ */
 .ct{flex:1;padding:22px;max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
 .ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
@@ -720,7 +724,14 @@ select.inp option{background:var(--sf2);color:var(--tx);}
     <button class="mnb on" id="mb-exec" onclick="goTab('exec')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg></span><span class="lb">Завдання</span><span class="mnd" id="dot-fix"></span></button>
     <button class="mnb"    id="mb-archive" onclick="goTab('archive')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"></path><path d="M10 12h4"></path></svg></span><span class="lb">Архів</span></button>
     <button class="mnb"    id="mb-workload" onclick="goTab('workload')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg></span><span class="lb">Графік</span></button>
-    <button class="mnb"    id="mb-settings" onclick="goTab('settings')"><span class="ic2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg></span><span class="lb">Ще</span></button>
+    <button class="mnb" id="mb-more" type="button" aria-label="Ще розділи" aria-controls="mobileMoreMenu" aria-expanded="false" onclick="openMobileMore()"><span class="ic2">⋯</span><span class="lb">Ще</span></button>
+  </div>
+</div>
+
+<div id="mobileMoreMenu" class="ovl" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="mobileMoreTitle" onclick="if(event.target===this)closeMobileMore()">
+  <div class="mdl su">
+    <div class="mhdr"><div class="mttl" id="mobileMoreTitle">Інші розділи</div><button class="mcl" type="button" aria-label="Закрити" onclick="closeMobileMore()">×</button></div>
+    <div id="mobileMoreList" class="mobile-more-list"></div>
   </div>
 </div>
 
@@ -1427,31 +1438,67 @@ function activateApp() {
 function buildMNav(roleType) {
   var g=document.getElementById('mng');
   if (roleType === 'admin' || roleType === 'manager') {
-    // Адмін і Керівник: 5 кнопок
+    // Адмін і Керівник: основні розділи та меню додаткових
     g.style.gridTemplateColumns='repeat(5,1fr)';
     g.innerHTML=
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Задачі',true)+
       mkMB('mb-mine','mine','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"></path><path d="M12 3v12M8 7l4-4 4 4"></path></svg>','Мої',false)+
       mkMB('mb-all','all','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>','Всі',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   } else if (roleType === 'director') {
-    // Дирекція: 4 кнопки — без Архіву і Всіх задач
+    // Дирекція: без Архіву і Всіх задач
     g.style.gridTemplateColumns='repeat(4,1fr)';
     g.innerHTML=
       mkMB('mb-mine','mine','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"></path><path d="M12 3v12M8 7l4-4 4 4"></path></svg>','Поставив',true)+
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Мої',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   } else {
-    // Співробітник: 4 кнопки — Задачі, Оголошення, Графік, Ще
+    // Співробітник: основні розділи та меню додаткових
     g.style.gridTemplateColumns='repeat(4,1fr)';
     g.innerHTML=
       mkMB('mb-exec','exec','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>','Задачі',true)+
       mkMB('mb-ann','ann','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 10v4a1 1 0 001 1h2l4 4V5L7 9H5a1 1 0 00-1 1z"></path><path d="M16 8.5a4 4 0 010 7"></path></svg>','Новини',false)+
       mkMB('mb-workload','workload','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>','Графік',false)+
-      mkMB('mb-settings','settings','<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"></path><circle cx="15" cy="8" r="2.2"></circle><circle cx="9" cy="16" r="2.2"></circle></svg>','Ще',false);
+      mkMoreMB();
   }
+  buildMobileMore(roleType);
+}
+function mkMoreMB() {
+  return '<button class="mnb" id="mb-more" type="button" aria-label="Ще розділи" aria-controls="mobileMoreMenu" aria-expanded="false" onclick="openMobileMore()">' +
+    '<span class="ic2">⋯</span><span class="lb">Ще</span></button>';
+}
+function buildMobileMore(roleType) {
+  var items = [
+    {tab:'archive', label:'Архів'},
+    {tab:'stats', label:'Аналітика'},
+    {tab:'info', label:'База знань'},
+    {tab:'ann', label:'Оголошення'},
+    {tab:'admin', label:'Адміністрування'},
+    {tab:'settings', label:'Налаштування'}
+  ];
+  if (roleType === 'manager') items = items.filter(function(item) { return item.tab !== 'admin'; });
+  if (roleType === 'director') items = items.filter(function(item) { return item.tab !== 'archive' && item.tab !== 'admin'; });
+  if (roleType === 'staff') items = items.filter(function(item) {
+    return item.tab === 'info' || item.tab === 'settings';
+  });
+  document.getElementById('mobileMoreList').innerHTML = items.map(function(item) {
+    return '<button class="mobile-more-item" type="button" data-mobile-tab="' + item.tab +
+      '" onclick="goTab(\'' + item.tab + '\');closeMobileMore()">' + item.label + '</button>';
+  }).join('');
+}
+function openMobileMore() {
+  var menu=document.getElementById('mobileMoreMenu');
+  document.getElementById('mb-more').setAttribute('aria-expanded','true');
+  menu.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeMobileMore() {
+  var menu=document.getElementById('mobileMoreMenu');
+  menu.style.display='none';
+  document.getElementById('mb-more').setAttribute('aria-expanded','false');
+  document.body.style.overflow='';
 }
 function mkMB(id,tab,ico,lbl,on) {
   return '<button class="mnb'+(on?' on':'')+'" id="'+id+'" onclick="goTab(\''+tab+'\')">' +
@@ -1471,6 +1518,10 @@ function getInitialTab(fallback) {
 }
 
 function goTab(t) {
+  // Адміністрування доступне тільки адміну
+  if (me && me.role !== 'Адмін' && t === 'admin') {
+    goTab('exec'); return;
+  }
   // Захист: Дирекція не бачить Архів і Всі завдання
   if (me && me.role==='Дирекція' && (t==='archive' || t==='all')) {
     goTab('mine'); return;
@@ -1486,6 +1537,10 @@ function goTab(t) {
   var pc=document.getElementById('pc-'+t); if (pc) pc.classList.add('on');
   document.querySelectorAll('.mnb').forEach(function(b){ b.classList.remove('on'); });
   var mb=document.getElementById('mb-'+t); if (mb) mb.classList.add('on');
+  else document.getElementById('mb-more').classList.add('on');
+  document.querySelectorAll('[data-mobile-tab]').forEach(function(b) {
+    b.classList.toggle('on', b.getAttribute('data-mobile-tab')===t);
+  });
 
   if (t==='exec')    renderExec();
   if (t==='mine')    renderMine();
