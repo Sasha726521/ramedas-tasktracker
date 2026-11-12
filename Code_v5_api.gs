@@ -1020,7 +1020,14 @@ function deleteInfoFile(fileId, callerLogin) {
       ["id","infoId","fileName","fileUrl","uploadedBy","uploadedAt"]);
     const rows = s.getDataRange().getValues();
     for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]) === String(fileId)) { s.deleteRow(i+1); return { ok: true }; }
+      if (String(rows[i][0]) === String(fileId)) {
+        const driveFileId = _extractDriveFileId(rows[i][3]);
+        if (driveFileId) {
+          try { DriveApp.getFileById(driveFileId).setTrashed(true); } catch(_) {}
+        }
+        s.deleteRow(i+1);
+        return { ok: true };
+      }
     }
     return { ok: false };
   } catch(e) { return { ok: false, err: e.message }; }

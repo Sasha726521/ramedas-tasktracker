@@ -949,7 +949,7 @@ body.light .rvbt{color:#b42318;}
       <div><label class="lbl">Заголовок</label><input id="iHd" type="text" class="inp" placeholder="Назва запису..."></div>
       <div><label class="lbl">Категорія</label>
         <select id="iCt" class="inp">
-          <option>Загальне</option><option>Контакти</option><option>Документи</option>
+          <option>Загальне</option><option>Інструкція</option><option>Розклад</option><option>Контакти</option><option>Документи</option>
           <option>Важливо</option><option>Посилання</option><option>Поради</option>
         </select>
       </div>
@@ -1697,6 +1697,7 @@ function refresh(showTaskLoading) {
           return [u.login,u.name,u.dept,u.role,'',u.email||''];
         }));
         try { sessionStorage.setItem('tt_users', JSON.stringify(rawUsers)); } catch(_) {}
+        if (infoRecs && infoRecs.length) renderInfo();
       }
       buildViews(); updateBadges();
       taskDataReady=true;
@@ -2409,6 +2410,20 @@ function openFilesM(tid) {
   document.getElementById('fiUrl').value=''; document.getElementById('fiLN').value='';
   loadTaskFiles(tid); openM('mFiles');
 }
+function findUserMeta(val) {
+  var k = String(val||'').toLowerCase().trim();
+  if (!k || !rawUsers || !rawUsers.length) return null;
+  for (var i = 0; i < rawUsers.length; i++) {
+    var r = rawUsers[i];
+    if (!r) continue;
+    var lg = String(r.login !== undefined ? r.login : r[0] || '').toLowerCase().trim();
+    var nm = String(r.name !== undefined ? r.name : r[1] || '').trim();
+    var dp = String(r.dept !== undefined ? r.dept : r[2] || '').trim();
+    if (lg === 'h' && nm === 'h') continue;
+    if (lg === k || nm.toLowerCase() === k) return { login: lg, name: nm, dept: dp };
+  }
+  return null;
+}
 function loadTaskFiles(tid) {
   var list=document.getElementById('fiList');
   list.innerHTML='<div style="color:var(--tx3);font-size:11px;padding:7px;">Завантаження...</div>';
@@ -2422,7 +2437,7 @@ function loadTaskFiles(tid) {
         var div=document.createElement('div'); div.className='fi-item';
         div.id='taskFile-'+f.id;
         div.innerHTML='<span class="fi-ico">'+(isLk?'🔗':'📄')+'</span>' +
-          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name.replace(/^🔗\s*/,''))+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
+          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name.replace(/^🔗\s*/,''))+'</a><div class="fi-meta">'+(function(){ var u=findUserMeta(f.uploadedBy); return u ? h(u.name)+(u.dept?' · 🏢 '+h(u.dept):'') : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
           '<button class="fi-del" onclick="deleteFile(\''+e(f.id)+'\','+(isLk?'true':'false')+')">🗑</button>';
         frag.appendChild(div);
       });
@@ -2957,16 +2972,18 @@ function renderInfo() {
   Object.keys(gr).forEach(function(dept) {
     var recs=gr[dept];
     var items=recs.map(function(r) {
-      var cat=(r.category||'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 5h10M9 12h10M9 19h10"></path><path d="M3 5l1.3 1.3L6.5 4M3 12l1.3 1.3L6.5 11M3 19l1.3 1.3L6.5 18"></path></svg>').split(' ')[0];
+      var catBadge='<span class="ch cn" style="font-size:8px;padding:2px 7px;">'+h(r.category||'Загальне')+'</span>';
       var editB=isMgr?'<button onclick="openInfoEdit(\''+e(r.id)+'\')" style="font-size:9px;color:var(--ac);background:none;border:none;cursor:pointer;font-weight:700;margin-left:7px;font-family:inherit;">Ред</button>':'';
+      var auObj=findUserMeta(r.author);
+      var auLabel=auObj?(h(auObj.name)+(auObj.dept?' · 🏢 '+h(auObj.dept):'')):h(r.author||'');
       return '<details style="border-bottom:1px solid var(--bd);">' +
         '<summary style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;cursor:pointer;list-style:none;">' +
           '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;">' +
-            '<span>'+cat+'</span>' +
+            catBadge +
             '<span style="font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+h(r.heading)+'</span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;flex-shrink:0;">' +
-            '<span style="font-size:8px;color:var(--tx3);">'+h(r.author||'')+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===(r.author||'').toLowerCase().trim()}); return u ? ' · 🏢 '+h(u.dept) : ''; })()+editB+'</span>' +
+            '<span style="font-size:8px;color:var(--tx3);">'+auLabel+editB+'</span>' +
           '</div>' +
         '</summary>' +
         '<div style="padding:7px 13px 13px;font-size:11px;color:var(--tx2);white-space:pre-line;line-height:1.5;background:var(--sf2);margin:0 7px 7px;border-radius:8px;">'+h(r.content)+'</div>' +
@@ -2996,7 +3013,10 @@ function openInfoEdit(id) {
   editIId=id;
   document.getElementById('mIT').textContent='Редагувати';
   document.getElementById('iDp').value=r.dept; document.getElementById('iHd').value=r.heading;
-  document.getElementById('iCt').value=r.category; document.getElementById('iCn').value=r.content;
+  var ctSel=document.getElementById('iCt');
+  ctSel.value=r.category||'Загальне';
+  if (!ctSel.value) ctSel.value='Загальне';
+  document.getElementById('iCn').value=r.content;
   document.getElementById('iId').value=id; document.getElementById('iDelB').style.display='';
   document.getElementById('infoFilesSection').style.display='';
   infoFilesId=id; loadInfoFilesList(id);
@@ -3025,7 +3045,7 @@ function loadInfoFilesList(infoId) {
       r.files.forEach(function(f) {
         var div=document.createElement('div'); div.className='fi-item';
         div.innerHTML='<span class="fi-ico">📄</span>' +
-          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name)+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
+          '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name)+'</a><div class="fi-meta">'+(function(){ var u=findUserMeta(f.uploadedBy); return u ? h(u.name)+(u.dept?' · 🏢 '+h(u.dept):'') : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
           '<button class="fi-del" onclick="deleteInfoFileFn(\''+e(f.id)+'\')">🗑</button>';
         frag.appendChild(div);
       });
