@@ -1293,7 +1293,14 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Відновлення сесії
   try {
-    var sv=sessionStorage.getItem('ttv5');
+    var sv=localStorage.getItem('ttv5');
+    if (!sv) {
+      sv=sessionStorage.getItem('ttv5');
+      if (sv) {
+        localStorage.setItem('ttv5',sv);
+        sessionStorage.removeItem('ttv5');
+      }
+    }
     if (sv) { me=JSON.parse(sv); activateApp(); return; }
   } catch(_) {}
 
@@ -1325,7 +1332,7 @@ function doLogin() {
   _callAPI('loginUser', [lg, ps],
     function(r) {
       barOff(); bt.disabled=false; bt.textContent='Увійти в систему';
-      if (r.ok) { me=r.user; sessionStorage.setItem('ttv5',JSON.stringify(me)); activateApp(); }
+      if (r.ok) { me=r.user; localStorage.setItem('ttv5',JSON.stringify(me)); activateApp(); }
       else { er.textContent=r.err||'Помилка входу'; er.style.display='block'; }
     },
     function() {
@@ -1336,6 +1343,7 @@ function doLogin() {
 }
 
 function logout() {
+  localStorage.removeItem('ttv5');
   sessionStorage.removeItem('ttv5');
   try { sessionStorage.removeItem('tt_users'); } catch(_) {}
   me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[]; taskDataReady=false;
