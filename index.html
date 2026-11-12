@@ -858,6 +858,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
       <span>📡</span><a id="dML" href="#" target="_blank" style="font-size:12px;font-weight:700;color:var(--gr);text-decoration:none;">Відкрити Google Meet</a>
     </div>
     <div id="dAct" style="display:flex;flex-direction:column;gap:7px;margin-bottom:9px;"></div>
+    <button onclick="copyTaskLink()" class="btn bgh bsm" style="width:100%;margin-bottom:8px;">Копіювати посилання</button>
     <div style="display:flex;gap:7px;padding-top:9px;border-top:1px solid var(--bd);">
       <button onclick="openCommD(curDetId)" class="btn bgh bsm" style="flex:1;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1.3-4.2A8 8 0 1121 12z"></path></svg> Коментарі</button>
       <button onclick="openFilesM(curDetId)" class="btn bgh bsm">Файли</button>
@@ -1231,6 +1232,7 @@ var execTasks=[], mineTasks=[];
 var tasksLoaded=false, tasksLoadState='loading';
 var selExecs=[], editTId=null, editUId=null, editIId=null;
 var revId='', commId='', curDetId='', filesId='', infoFilesId='';
+var taskDataReady=false;
 var selFile=null, selInfoFile=null;
 var execF='', wlTab='mine', autoT=null;
 var isLight=false;
@@ -1271,6 +1273,8 @@ function toggleTheme() {
 //  ІНІЦІАЛІЗАЦІЯ
 // ══════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', function() {
+  window.addEventListener('popstate', syncTaskLinkFromUrl);
+  window.addEventListener('hashchange', syncTaskLinkFromUrl);
   setupPWA();
   loadApiUrl();
   // Завантажуємо кешованих users для швидшого відкриття форми задачі
@@ -1352,7 +1356,7 @@ function logout() {
     sessionStorage.removeItem('tt_users');
     sessionStorage.removeItem('tt_active_tab');
   } catch(_) {}
-  me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[];
+  me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[]; taskDataReady=false;
   tasksLoaded=false; tasksLoadState='loading';
   selExecs=[]; filesId=''; selFile=null; selInfoFile=null;
   if (autoT) clearInterval(autoT);
@@ -1579,6 +1583,8 @@ function startAutoRefresh() {
           try { sessionStorage.setItem('tt_users', JSON.stringify(rawUsers)); } catch(_) {}
         }
         buildViews(); updateBadges();
+        taskDataReady=true;
+        openTaskFromUrl();
       })
       .withFailureHandler(function(){})
       .getAppData(me.login);
@@ -1612,6 +1618,8 @@ function refresh() {
         try { sessionStorage.setItem('tt_users', JSON.stringify(rawUsers)); } catch(_) {}
       }
       buildViews(); updateBadges();
+      taskDataReady=true;
+      openTaskFromUrl();
     })
     .withFailureHandler(function(){
       barOff();
@@ -1969,10 +1977,11 @@ function now(){ return new Date(); }
 // ══════════════════════════════════════════
 //  ДЕТАЛІ ЗАДАЧІ
 // ══════════════════════════════════════════
-function openDet(tid) {
+function openDet(tid, fromUrl) {
   var t=null; for (var i=0;i<allTasks.length;i++) { if (allTasks[i].id===tid){t=allTasks[i];break;} }
   if (!t) return;
   curDetId=tid;
+  if (!fromUrl) updateTaskUrl(tid, false);
   var ml=me.login.toLowerCase().trim();
   var isEx=t.executors.indexOf(ml)!==-1||t.coExec===ml||t.isExec;
   var isMgr=RMGR.includes(me.role);
@@ -2028,6 +2037,73 @@ function openDet(tid) {
   var eb=document.getElementById('dEdB');
   if (isMgr&&!['Виконано','Скасовано'].includes(t.status)) eb.style.display=''; else eb.style.display='none';
   openM('mDet');
+}
+
+function getTaskIdFromUrl() {
+  var hash=window.location.hash;
+  if (hash.indexOf('#task=')!==0) return '';
+  try { return decodeURIComponent(hash.slice(6)); } catch(error) { return ''; }
+}
+function updateTaskUrl(tid, replace) {
+  var hash=tid?'#task='+encodeURIComponent(tid):'';
+  if (window.location.hash===hash) return;
+  var url=window.location.href.split('#')[0]+hash;
+  if (window.history && window.history.pushState) {
+    window.history[replace?'replaceState':'pushState'](window.history.state,'',url);
+  } else {
+    window.location.hash=hash.slice(1);
+  }
+}
+function openTaskFromUrl() {
+  var tid=getTaskIdFromUrl();
+  if (!tid || !me || !taskDataReady) return;
+  var modal=document.getElementById('mDet');
+  if (curDetId===tid && modal && modal.style.display!=='none') return;
+  var task=allTasks.find(function(item){return item.id===tid;});
+  if (!task) {
+    if (modal && modal.style.display!=='none') closeM('mDet');
+    toast('Задачу за посиланням не знайдено або вона вам недоступна','err');
+    updateTaskUrl('', true);
+    return;
+  }
+  openDet(tid, true);
+}
+function syncTaskLinkFromUrl() {
+  if (getTaskIdFromUrl()) {
+    openTaskFromUrl();
+  } else {
+    var modal=document.getElementById('mDet');
+    if (modal && modal.style.display!=='none') closeM('mDet');
+  }
+}
+function copyTaskLink() {
+  var url=window.location.href;
+  function showCopied() { toast('Посилання на задачу скопійовано','ok'); }
+  function fallbackCopy() {
+    var input=document.createElement('textarea');
+    input.value=url;
+    input.setAttribute('readonly','');
+    input.style.position='fixed';
+    input.style.opacity='0';
+    document.body.appendChild(input);
+    input.select();
+    var copied=false;
+    try {
+      copied=document.execCommand('copy');
+    } catch(error) {
+      toast('Браузер не дозволив скопіювати посилання. Скопіюйте його з адресного рядка','err');
+      return;
+    } finally {
+      input.parentNode.removeChild(input);
+    }
+    if (copied) showCopied();
+    else toast('Не вдалося скопіювати посилання. Скопіюйте його з адресного рядка','err');
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(showCopied, fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
 }
 
 // ══════════════════════════════════════════
@@ -2983,7 +3059,14 @@ function checkApiUrlCard() {
 //  УТИЛІТИ
 // ══════════════════════════════════════════
 function openM(id){ document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
-function closeM(id){ document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
+function closeM(id){
+  document.getElementById(id).style.display='none';
+  document.body.style.overflow='';
+  if (id==='mDet') {
+    curDetId='';
+    if (getTaskIdFromUrl()) updateTaskUrl('', true);
+  }
+}
 function showE(id){ var el=document.getElementById(id); if(el) el.style.display=''; }
 function barOn(){ document.getElementById('tbar').style.opacity='1'; }
 function barOff(){ document.getElementById('tbar').style.opacity='0'; }
