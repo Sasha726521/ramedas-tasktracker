@@ -59,6 +59,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .spl-bar{width:140px;height:3px;background:var(--sf2);border-radius:99px;overflow:hidden;margin-top:6px;}
 .spl-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));border-radius:99px;animation:fb 1.6s ease-out forwards;}
 @keyframes fb{from{width:0;}to{width:100%;}}
+.task-loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:24px;color:var(--tx2);font-size:12px;}
+.task-spinner{width:16px;height:16px;border:2px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:task-spin .75s linear infinite;}
+@keyframes task-spin{to{transform:rotate(360deg);}}
 /* ════════════════ TOP BAR ════════════════ */
 #tbar{position:fixed;top:0;left:0;right:0;height:2px;z-index:500;background:linear-gradient(90deg,var(--ac),var(--gr),var(--ac));background-size:200%;opacity:0;transition:opacity .2s;animation:bs 1.2s linear infinite;}
 @keyframes bs{to{background-position:200%;}}
@@ -143,6 +146,9 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 /* ════════════════ MODALS ════════════════ */
 .ovl{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
 .mdl{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--rl) var(--rl) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:18px 18px 30px;box-shadow:var(--shl);}
+#mTask .mdl{position:relative;}
+.task-submit-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;gap:11px;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);border-radius:inherit;color:var(--tx);font-size:13px;font-weight:700;}
+.task-submit-overlay .task-spinner{width:26px;height:26px;border-width:3px;}
 @media(min-width:640px){.ovl{align-items:center;padding:16px;}.mdl{border-radius:var(--rl);}}
 .mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .mttl{font-size:15px;font-weight:800;color:var(--tx);}
@@ -736,6 +742,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 <div id="mTask" class="ovl" style="display:none;">
   <div class="mdl su">
     <div class="mhdr"><div class="mttl" id="mTT">Нова задача</div><button class="mcl" onclick="closeM('mTask')">x</button></div>
+    <div id="taskSubmitLoading" class="task-submit-overlay" style="display:none;" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Створюємо задачу...</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div><label class="lbl">Назва *</label><input id="fTi" type="text" class="inp" placeholder="Чітко та конкретно..."></div>
       <div><label class="lbl">Опис</label><textarea id="fDe" rows="2" class="inp" style="resize:none;" placeholder="Деталі завдання..."></textarea></div>
@@ -1216,6 +1223,7 @@ var SLAB = {'Нова':'Нова','В роботі':'В роботі','На пе
 var me=null, rawUsers=[], allTasks=[], infoRecs=[], planSlots=[], statTasksAll=[];
 var execTasks=[], mineTasks=[];
 var selExecs=[], editTId=null, editUId=null, editIId=null;
+var taskSubmitting=false;
 var revId='', commId='', curDetId='', filesId='', infoFilesId='';
 var taskDataReady=false;
 var selFile=null, selInfoFile=null;
@@ -1530,12 +1538,20 @@ function startAutoRefresh() {
 // ══════════════════════════════════════════
 //  ДАНІ
 // ══════════════════════════════════════════
-function refresh() {
+function refresh(showTaskLoading) {
+  if (showTaskLoading) {
+    document.getElementById('alList').innerHTML='<div class="task-loading" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Завантажуємо задачі...</div>';
+    document.getElementById('alEmpty').style.display='none';
+  }
   barOn();
   google.script.run
     .withSuccessHandler(function(r) {
       barOff();
-      if (!r||!r.ok) { toast((r&&r.err)||'Помилка завантаження','err'); return; }
+      if (!r||!r.ok) {
+        if (showTaskLoading) renderAll();
+        toast((r&&r.err)||'Помилка завантаження','err');
+        return;
+      }
       allTasks = r.tasks||[];
       if (r.users && r.users.length) {
         rawUsers = [['h','h','h','h','h','h']].concat(r.users.map(function(u){
@@ -1547,7 +1563,7 @@ function refresh() {
       taskDataReady=true;
       openTaskFromUrl();
     })
-    .withFailureHandler(function(){ barOff(); toast("Помилка з'єднання",'err'); })
+    .withFailureHandler(function(){ barOff(); if (showTaskLoading) renderAll(); toast("Помилка з'єднання",'err'); })
     .getAppData(me.login);
 }
 
@@ -2146,6 +2162,7 @@ function updExD() {
   sp.textContent=ns.join(', '); d.classList.add('hv');
 }
 function submitTask() {
+  if (taskSubmitting) return;
   var ti=document.getElementById('fTi').value.trim();
   if (!ti) { toast('Введіть назву задачі','err'); return; }
   if (!selExecs.length) { toast('Оберіть виконавця','err'); return; }
@@ -2156,12 +2173,26 @@ function submitTask() {
     if (firstExec) deptVal = String(firstExec[2]||'');
   }
   var data={title:ti,desc:document.getElementById('fDe').value.trim(),type:document.getElementById('fTy').value,priority:document.getElementById('fPr').value,dept:deptVal,executors:selExecs,coExec:document.getElementById('fCo').value,deadline:document.getElementById('fDl').value};
-  closeM('mTask'); barOn();
   if (editTId) {
+    closeM('mTask'); barOn();
     data.status=document.getElementById('fSt').value;
     google.script.run.withSuccessHandler(function(r){barOff();if(r.ok){toast('Збережено','ok');refresh();}else toast(r.err||'Помилка','err');}).withFailureHandler(function(){barOff();toast('Помилка','err');}).editTask(editTId,data,me.login);
   } else {
-    google.script.run.withSuccessHandler(function(r){barOff();if(r.ok){toast('Задачу створено','ok');refresh();}else toast(r.err||'Помилка','err');}).withFailureHandler(function(){barOff();toast('Помилка','err');}).createTask(data,me.login);
+    taskSubmitting=true;
+    document.getElementById('taskSubmitLoading').style.display='flex';
+    barOn();
+    google.script.run.withSuccessHandler(function(r){
+      barOff();
+      taskSubmitting=false;
+      document.getElementById('taskSubmitLoading').style.display='none';
+      if(r&&r.ok){closeM('mTask');toast('Задачу створено','ok');refresh(true);}
+      else toast((r&&r.err)||'Помилка','err');
+    }).withFailureHandler(function(){
+      barOff();
+      taskSubmitting=false;
+      document.getElementById('taskSubmitLoading').style.display='none';
+      toast('Помилка','err');
+    }).createTask(data,me.login);
   }
 }
 
