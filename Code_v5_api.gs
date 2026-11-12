@@ -58,7 +58,7 @@ function _route(fn, p) {
     case "addDriveLinkToTask": return _ok(addDriveLinkToTask(p.taskId, p.url, p.name, p.caller));
     case "getTaskFiles":       return _ok(getTaskFiles(p.taskId));
     case "deleteTaskFile":     return _ok(deleteTaskFile(p.fileId, p.caller));
-    case "getAnalytics":       return _ok(getAnalytics(p.caller, p.dept||"", p.period||"month"));
+    case "getAnalytics":       return _ok(getAnalytics(p.caller, p.dept||"", p.period||"month", p.employee||"", p.dateFrom||"", p.dateTo||""));
     case "setWorkload":        return _ok(setWorkload(p.login, p.date, p.startTime, p.endTime, p.status, p.note, p.caller));
     case "getWorkloadForDate": return _ok(getWorkloadForDate(p.date, p.caller));
     case "getUserDayPlan":     return _ok(getUserDayPlan(p.login, p.date, p.caller));
@@ -650,23 +650,52 @@ function _getTaskRow(taskId) {
 }
 
 // ─── АНАЛІТИКА ───────────────────────────────────
-function getAnalytics(callerLogin, deptFilter, period) {
+function getAnalytics(callerLogin, deptFilter, period, employeeFilter, dateFromFilter, dateToFilter) {
   try {
     const caller   = checkRole(callerLogin, ROLE_MGR);
     const rows     = sh("Tasks").getDataRange().getValues();
     const userRows = sh("Users").getDataRange().getValues();
     const now      = new Date();
 
-    const uMap = {};
+    const uMap = {}, userDept = {}, employees = [];
     for (let i = 1; i < userRows.length; i++) {
       if (!userRows[i][0]) continue;
-      uMap[String(userRows[i][0]).toLowerCase().trim()] = String(userRows[i][1]||"");
+      const login = String(userRows[i][0]).toLowerCase().trim();
+      const name = String(userRows[i][1]||"");
+      const dept = String(userRows[i][2]||"");
+      uMap[login] = name;
+      userDept[login] = dept;
+      if (caller.role !== "Керівник" || dept === caller.dept) {
+        employees.push({ login, name, dept });
+      }
     }
 
     let dateFrom = new Date(0);
-    if (period === "week")    dateFrom = new Date(now.getTime() - 7*86400000);
-    if (period === "month")   dateFrom = new Date(now.getTime() - 30*86400000);
-    if (period === "quarter") dateFrom = new Date(now.getTime() - 90*86400000);
+    const hasDateRange = Boolean(dateFromFilter || dateToFilter);
+    let fromDate = "", toDate = "";
+    if (hasDateRange) {
+      fromDate = String(dateFromFilter||"").trim();
+      toDate = String(dateToFilter||"").trim();
+      if ((fromDate && !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) ||
+          (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) ||
+          (fromDate && !kyivParts(fromDate)) ||
+          (toDate && !kyivParts(toDate))) {
+        throw new Error("Некоректний діапазон дат");
+      }
+      if (fromDate && toDate && fromDate > toDate) {
+        throw new Error("Дата початку не може бути пізніше дати завершення");
+      }
+    } else {
+      if (period === "week")    dateFrom = new Date(now.getTime() - 7*86400000);
+      if (period === "month")   dateFrom = new Date(now.getTime() - 30*86400000);
+      if (period === "quarter") dateFrom = new Date(now.getTime() - 90*86400000);
+    }
+
+    const selectedEmployee = String(employeeFilter||"").toLowerCase().trim();
+    if (selectedEmployee && (!Object.prototype.hasOwnProperty.call(userDept, selectedEmployee) ||
+        (caller.role === "Керівник" && userDept[selectedEmployee] !== caller.dept))) {
+      throw new Error("Працівника не знайдено або він недоступний");
+    }
 
     let total=0, done=0, inWork=0, overdue=0, revision=0, onTime=0;
     const byExec = {}, byDept = {}, taskList = [];
@@ -681,13 +710,20 @@ function getAnalytics(callerLogin, deptFilter, period) {
       const dl     = r[9]  ? kyivInstant(r[9])  : null;
       const closed = r[11] ? kyivInstant(r[11]) : null;
       const execs  = parseExecs(String(r[6]||""));
+      const coExec = String(r[7]||"").toLowerCase().trim();
       const author = String(r[8]||"").toLowerCase().trim();
 
       if (caller.role === "Керівник" && dept !== caller.dept) continue;
       if (deptFilter && dept !== deptFilter) continue;
+      if (selectedEmployee && !execs.includes(selectedEmployee) && coExec !== selectedEmployee) continue;
 
       const refDate = closed || dl;
-      if (refDate && refDate < dateFrom) continue;
+      if (hasDateRange) {
+        if (!refDate) continue;
+        const refDateOnly = dateISO(refDate).substring(0, 10);
+        if (fromDate && refDateOnly < fromDate) continue;
+        if (toDate && refDateOnly > toDate) continue;
+      } else if (refDate && refDate < dateFrom) continue;
 
       total++;
       if (status === "Виконано")         done++;
@@ -696,10 +732,15 @@ function getAnalytics(callerLogin, deptFilter, period) {
       if (dl && dl < now && !["Виконано","Скасовано"].includes(status)) overdue++;
       if (status === "Виконано" && dl && closed && closed <= dl) onTime++;
 
-      execs.forEach(l => {
-        const name = uMap[l] || l;
+      if (selectedEmployee) {
+        const name = uMap[selectedEmployee] || selectedEmployee;
         byExec[name] = (byExec[name]||0) + 1;
-      });
+      } else {
+        execs.forEach(l => {
+          const name = uMap[l] || l;
+          byExec[name] = (byExec[name]||0) + 1;
+        });
+      }
 
       if (!byDept[dept]) byDept[dept] = { total:0, done:0, inWork:0, overdue:0 };
       byDept[dept].total++;
@@ -713,7 +754,7 @@ function getAnalytics(callerLogin, deptFilter, period) {
         status,
         dept,
         priority:   String(r[13]||"Середній"),
-        executor:   execs.map(l => uMap[l]||l).join(", "),
+        executor:   execs.concat(coExec && !execs.includes(coExec) ? [coExec] : []).map(l => uMap[l]||l).join(", "),
         authorName: uMap[author] || author,
         deadline:   dateISO(r[9]),
         closedAt:   dateISO(r[11])
@@ -721,7 +762,7 @@ function getAnalytics(callerLogin, deptFilter, period) {
     }
 
     const kpi = done > 0 ? Math.round((onTime/done)*100) : 0;
-    return { ok: true, stats: { total, done, inWork, overdue, revision, kpi }, byExec, byDept, taskList };
+    return { ok: true, stats: { total, done, inWork, overdue, revision, kpi }, byExec, byDept, taskList, employees };
   } catch(e) { return { ok: false, err: e.message }; }
 }
 

@@ -114,6 +114,15 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .ct{flex:1;padding:22px;max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
 .ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .pt{font-size:20px;font-weight:900;color:var(--tx);letter-spacing:-.3px;}
+#tab-stats .stats-header{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 10px;}
+.stats-header>.pt{grid-column:1;grid-row:1;white-space:nowrap;}
+.stats-filters{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:7px;min-width:0;}
+.stats-filters .inp{flex:0 1 auto;min-width:0;}
+.stats-filters .btn{flex-shrink:0;}
+.stats-filters #stPer{width:110px;flex:0 0 110px;}
+.stats-filters #stDep{width:340px;max-width:480px;min-width:180px;flex:1 1 340px;}
+.stats-filters #stExec{width:200px;flex:0 0 200px;}
+#stCustomRange{grid-column:1/-1;grid-row:2;}
 .ps{font-size:11px;color:var(--tx2);margin-top:1px;}
 /* ════════════════ CARDS ════════════════ */
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:15px;box-shadow:var(--sh);}
@@ -322,12 +331,20 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 .ann-meta{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--bd);font-size:9px;color:var(--tx3);}
 .ann-pin{background:rgba(211,218,224,.15);color:var(--pu);padding:2px 7px;border-radius:99px;font-size:8px;font-weight:800;}
 /* ════════════════ RESPONSIVE ════════════════ */
+@media(max-width:1120px){
+  #tab-stats .stats-header{grid-template-columns:minmax(0,1fr);}
+  .stats-filters{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;}
+  #stCustomRange{grid-row:3;}
+}
 @media(max-width:768px){
   .sb{display:none;}.mhd{display:flex;}#mnav{display:block;}
   .ct{padding:12px 12px 72px;gap:13px;}
   .acard{padding:22px 18px;}.mdl{padding:15px 15px 26px;}
   #toasts{top:7px;right:7px;left:7px;min-width:0;}
   .sgrid{grid-template-columns:1fr 1fr;}
+  #tab-stats .stats-header{grid-template-columns:minmax(0,1fr);}
+  .stats-filters{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;}
+  #stCustomRange{grid-row:3;}
 }
 
 .ct>section{display:flex;flex-direction:column;gap:16px;}
@@ -585,20 +602,25 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 
       <!-- ╔══ АНАЛІТИКА ══╗ -->
       <section id="tab-stats" style="display:none;" class="fi">
-        <div class="ph">
+        <div class="ph stats-header">
           <div class="pt">Аналітика</div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;">
-            <select id="stPer" class="inp" style="width:auto;font-size:11px;padding:5px 10px;"><option value="week">Тиждень</option><option value="month" selected>Місяць</option><option value="quarter">Квартал</option></select>
-            <select id="stDep" class="inp" style="width:auto;font-size:11px;padding:5px 10px;"><option value="">Всі відділи</option></select>
+          <div class="stats-filters">
+            <select id="stPer" class="inp" onchange="toggleStatsDateRange()" title="Оберіть «Свій період», щоб задати власні дати" style="font-size:11px;padding:5px 10px;"><option value="week">Тиждень</option><option value="month" selected>Місяць</option><option value="quarter">Квартал</option><option value="custom">Свій період</option></select>
+            <select id="stDep" class="inp" style="font-size:11px;padding:5px 10px;"><option value="">Всі відділи</option></select>
+            <select id="stExec" class="inp" aria-label="Працівник" title="Фільтр задач за працівником" style="font-size:11px;padding:5px 10px;"><option value="">Всі працівники</option></select>
             <button class="btn bp bsm" onclick="loadStats()">Застосувати</button>
+          </div>
+          <div id="stCustomRange" style="display:none;gap:7px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">Від <input type="date" id="stFrom" class="inp" aria-label="Дата початку діапазону" title="Початок діапазону, включно" style="width:auto;font-size:11px;padding:5px 8px;"></label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">До <input type="date" id="stTo" class="inp" aria-label="Дата завершення діапазону" title="Завершення діапазону, включно" style="width:auto;font-size:11px;padding:5px 8px;"></label>
           </div>
         </div>
         <div class="sgrid">
-          <div class="scard bl"><div class="slbl">Всього</div><div class="sval" id="stT">—</div></div>
-          <div class="scard gr"><div class="slbl">Виконано</div><div class="sval" id="stD">—</div></div>
-          <div class="scard rd"><div class="slbl">Прострочено</div><div class="sval" id="stO">—</div></div>
-          <div class="scard am"><div class="slbl">Доопрацювання</div><div class="sval" id="stR">—</div></div>
-          <div class="scard pu"><div class="slbl">КПД %</div><div class="sval" id="stK">—</div><div class="sbar"><div class="sbf" id="stKB" style="width:0%;"></div></div></div>
+          <div class="scard bl"><div class="slbl" title="Кількість задач у вибраному періоді та за обраними фільтрами">Всього</div><div class="sval" id="stT">—</div></div>
+          <div class="scard gr"><div class="slbl" title="Задачі зі статусом «Виконано»">Виконано</div><div class="sval" id="stD">—</div></div>
+          <div class="scard rd"><div class="slbl" title="Незавершені задачі, дедлайн яких минув">Прострочено</div><div class="sval" id="stO">—</div></div>
+          <div class="scard am"><div class="slbl" title="Задачі зі статусом «На доопрацювання»">Доопрацювання</div><div class="sval" id="stR">—</div></div>
+          <div class="scard pu"><div class="slbl" title="Частка виконаних задач, закритих до дедлайну, серед усіх виконаних задач">КПД %</div><div class="sval" id="stK" title="Вчасно виконані ÷ усі виконані задачі × 100%">—</div><div class="sbar"><div class="sbf" id="stKB" style="width:0%;"></div></div></div>
         </div>
         <!-- Список задач -->
         <div class="card">
@@ -615,11 +637,11 @@ select.inp option{background:var(--sf2);color:var(--tx);}
           </div>
         </div>
         <div class="card">
-          <div class="lbl" style="margin-bottom:12px;">Завантаженість виконавців</div>
+          <div class="lbl" title="Кількість задач, у яких працівник є виконавцем" style="margin-bottom:12px;">Завантаженість виконавців</div>
           <div id="stEB"></div>
         </div>
         <div class="card">
-          <div class="lbl" style="margin-bottom:12px;">По відділах</div>
+          <div class="lbl" title="Числа: виконано, у роботі, прострочено та частка виконаних задач" style="margin-bottom:12px;">По відділах</div>
           <div id="stDB"></div>
         </div>
       </section>
@@ -1160,7 +1182,7 @@ function _argsToParams(fn, args) {
     'addDriveLinkToTask': { taskId:a[0], url:a[1], name:a[2], caller:a[3] },
     'getTaskFiles':       { taskId:a[0] },
     'deleteTaskFile':     { fileId:a[0], caller:a[1] },
-    'getAnalytics':       { caller:a[0], dept:a[1]||'', period:a[2]||'month' },
+    'getAnalytics':       { caller:a[0], dept:a[1]||'', period:a[2]||'month', employee:a[3]||'', dateFrom:a[4]||'', dateTo:a[5]||'' },
     'setWorkload':        { login:a[0], date:a[1], startTime:a[2], endTime:a[3], status:a[4], note:a[5], caller:a[6] },
     'getWorkloadForDate': { date:a[0], caller:a[1] },
     'getUserDayPlan':     { login:a[0], date:a[1], caller:a[2] },
@@ -2593,11 +2615,44 @@ function renderPlanSlots() {
 // ══════════════════════════════════════════
 //  АНАЛІТИКА
 // ══════════════════════════════════════════
+function updateStatsEmployeeOptions(employees) {
+  var sel=document.getElementById('stExec'); if(!sel) return;
+  var current=sel.value;
+  sel.innerHTML='<option value="">Всі працівники</option>';
+  (employees||[]).slice().sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'uk');}).forEach(function(user) {
+    var option=document.createElement('option');
+    option.value=user.login;
+    option.textContent=user.name||user.login;
+    option.title=user.dept||'';
+    sel.appendChild(option);
+  });
+  sel.value=current;
+}
+
+function toggleStatsDateRange() {
+  var period=document.getElementById('stPer');
+  var range=document.getElementById('stCustomRange');
+  var isCustom=period && period.value==='custom';
+  if (range) range.style.display=isCustom?'flex':'none';
+  if (!isCustom) {
+    var from=document.getElementById('stFrom');
+    var to=document.getElementById('stTo');
+    if (from) from.value='';
+    if (to) to.value='';
+  }
+}
+
 function loadStats() {
+  var from=document.getElementById('stFrom')?document.getElementById('stFrom').value:'';
+  var to=document.getElementById('stTo')?document.getElementById('stTo').value:'';
+  var period=document.getElementById('stPer')?document.getElementById('stPer').value:'month';
+  if (period==='custom' && (!from || !to)) { toast('Оберіть обидві дати для довільного діапазону','err'); return; }
+  if (from && to && from>to) { toast('Дата початку не може бути пізніше дати завершення','err'); return; }
   barOn();
   google.script.run
     .withSuccessHandler(function(r) {
       barOff(); if(!r.ok){toast(r.err||'Помилка','err');return;}
+      updateStatsEmployeeOptions(r.employees);
       var s=r.stats;
       document.getElementById('stT').textContent=s.total;
       document.getElementById('stD').textContent=s.done;
@@ -2621,7 +2676,7 @@ function loadStats() {
           var dv=document.createElement('div'); dv.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:7px;';
           dv.innerHTML='<span style="font-size:11px;color:var(--tx2);width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">'+h(e2[0])+'</span>' +
             '<div style="flex:1;background:var(--sf2);border-radius:99px;height:6px;"><div style="height:6px;border-radius:99px;background:linear-gradient(90deg,var(--ac),var(--gr));width:'+pc+'%;transition:width .7s;"></div></div>' +
-            '<span style="font-size:11px;font-weight:700;color:var(--tx);width:16px;text-align:right;flex-shrink:0;">'+e2[1]+'</span>';
+            '<span title="Кількість задач цього працівника" style="font-size:11px;font-weight:700;color:var(--tx);width:16px;text-align:right;flex-shrink:0;">'+e2[1]+'</span>';
           frag.appendChild(dv);
         });
         eb.appendChild(frag);
@@ -2638,10 +2693,10 @@ function loadStats() {
         dv.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">' +
           '<span style="font-size:11px;font-weight:600;color:var(--tx);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+h(en2[0])+'</span>' +
           '<div style="display:flex;gap:7px;font-size:10px;">' +
-            '<span style="color:var(--gr);">'+dd.done+'</span>' +
-            '<span style="color:var(--ac);">'+dd.inWork+'</span>' +
-            (dd.overdue>0?'<span style="color:var(--rd);">⚠ '+dd.overdue+'</span>':'')+
-            '<span style="color:var(--tx3);">'+pt+'%</span>' +
+            '<span title="Виконано задач" style="color:var(--gr);">'+dd.done+'</span>' +
+            '<span title="Задач у роботі" style="color:var(--ac);">'+dd.inWork+'</span>' +
+            (dd.overdue>0?'<span title="Прострочених незавершених задач" style="color:var(--rd);">⚠ '+dd.overdue+'</span>':'')+
+            '<span title="Частка виконаних задач від загальної кількості у відділі" style="color:var(--tx3);">'+pt+'%</span>' +
           '</div></div>' +
           '<div style="background:var(--sf2);border-radius:99px;height:4px;"><div style="height:4px;border-radius:99px;background:var(--gr);width:'+pt+'%;transition:width .7s;"></div></div>';
         dfrag.appendChild(dv);
@@ -2649,7 +2704,14 @@ function loadStats() {
       db.appendChild(dfrag);
     })
     .withFailureHandler(function(){barOff();toast('Помилка','err');})
-    .getAnalytics(me.login, document.getElementById('stDep')?document.getElementById('stDep').value:'', document.getElementById('stPer')?document.getElementById('stPer').value:'month');
+    .getAnalytics(
+      me.login,
+      document.getElementById('stDep')?document.getElementById('stDep').value:'',
+      period,
+      document.getElementById('stExec')?document.getElementById('stExec').value:'',
+      from,
+      to
+    );
 }
 
 var STAT_ORDER = ['Нова','В роботі','На перевірці','На доопрацювання','Виконано','Скасовано'];
