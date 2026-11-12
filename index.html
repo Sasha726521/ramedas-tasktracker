@@ -123,6 +123,13 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .stats-filters #stDep{width:340px;max-width:480px;min-width:180px;flex:1 1 340px;}
 .stats-filters #stExec{width:200px;flex:0 0 200px;}
 #stCustomRange{grid-column:1/-1;grid-row:2;}
+.stats-date-control{position:relative;display:flex;align-items:center;gap:4px;}
+.stats-date-control>input.inp{width:126px;padding:5px 8px;font-size:11px;}
+.stats-date-control>.btn{width:30px;height:30px;padding:4px;}
+.stats-date-native{position:absolute;right:0;top:0;width:1px;height:1px;padding:0;border:0;opacity:0;pointer-events:none;}
+.stats-results{position:relative;display:flex;flex-direction:column;gap:16px;}
+.stats-loading-overlay{position:absolute;inset:-8px 0 0;z-index:10;display:flex;flex-direction:column;gap:10px;background:rgba(21,18,11,.78);backdrop-filter:blur(3px);border-radius:var(--rl);color:var(--tx);font-weight:600;}
+body.light .stats-loading-overlay{background:rgba(247,242,234,.84);}
 .ps{font-size:11px;color:var(--tx2);margin-top:1px;}
 /* ════════════════ CARDS ════════════════ */
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:15px;box-shadow:var(--sh);}
@@ -608,13 +615,27 @@ select.inp option{background:var(--sf2);color:var(--tx);}
             <select id="stPer" class="inp" onchange="toggleStatsDateRange()" title="Оберіть «Свій період», щоб задати власні дати" style="font-size:11px;padding:5px 10px;"><option value="week">Тиждень</option><option value="month" selected>Місяць</option><option value="quarter">Квартал</option><option value="custom">Свій період</option></select>
             <select id="stDep" class="inp" style="font-size:11px;padding:5px 10px;"><option value="">Всі відділи</option></select>
             <select id="stExec" class="inp" aria-label="Працівник" title="Фільтр задач за працівником" style="font-size:11px;padding:5px 10px;"><option value="">Всі працівники</option></select>
-            <button class="btn bp bsm" onclick="loadStats()">Застосувати</button>
+            <button class="btn bp bsm" id="stApply" aria-controls="stLoading" onclick="loadStats()">Застосувати</button>
           </div>
           <div id="stCustomRange" style="display:none;gap:7px;align-items:center;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">Від <input type="date" id="stFrom" class="inp" aria-label="Дата початку діапазону" title="Початок діапазону, включно" style="width:auto;font-size:11px;padding:5px 8px;"></label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">До <input type="date" id="stTo" class="inp" aria-label="Дата завершення діапазону" title="Завершення діапазону, включно" style="width:auto;font-size:11px;padding:5px 8px;"></label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">Від
+              <span class="stats-date-control">
+                <input type="text" id="stFrom" class="inp" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.РРРР" aria-label="Дата початку діапазону" title="Введіть дату у форматі ДД.ММ.РРРР" oninput="formatStatsDate(this)">
+                <button type="button" class="btn bgh bsm" onclick="openStatsDatePicker('stFromPicker')" aria-label="Обрати дату початку" title="Відкрити календар"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg></button>
+                <input type="date" id="stFromPicker" class="stats-date-native" aria-hidden="true" tabindex="-1" onchange="syncStatsDatePicker(this,'stFrom')">
+              </span>
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);">До
+              <span class="stats-date-control">
+                <input type="text" id="stTo" class="inp" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.РРРР" aria-label="Дата завершення діапазону" title="Введіть дату у форматі ДД.ММ.РРРР" oninput="formatStatsDate(this)">
+                <button type="button" class="btn bgh bsm" onclick="openStatsDatePicker('stToPicker')" aria-label="Обрати дату завершення" title="Відкрити календар"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg></button>
+                <input type="date" id="stToPicker" class="stats-date-native" aria-hidden="true" tabindex="-1" onchange="syncStatsDatePicker(this,'stTo')">
+              </span>
+            </label>
           </div>
         </div>
+        <div class="stats-results">
+        <div id="stLoading" class="task-loading stats-loading-overlay" style="display:none;" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Завантажуємо аналітику...</div>
         <div class="sgrid">
           <div class="scard bl"><div class="slbl" title="Кількість задач у вибраному періоді та за обраними фільтрами">Всього</div><div class="sval" id="stT">—</div></div>
           <div class="scard gr"><div class="slbl" title="Задачі зі статусом «Виконано»">Виконано</div><div class="sval" id="stD">—</div></div>
@@ -643,6 +664,7 @@ select.inp option{background:var(--sf2);color:var(--tx);}
         <div class="card">
           <div class="lbl" title="Числа: виконано, у роботі, прострочено та частка виконаних задач" style="margin-bottom:12px;">По відділах</div>
           <div id="stDB"></div>
+        </div>
         </div>
       </section>
 
@@ -1570,6 +1592,16 @@ function getInitialTab(fallback) {
   return fallback;
 }
 
+function resetInvalidStatsDateRange() {
+  var period=document.getElementById('stPer');
+  if (!period || period.value!=='custom') return;
+  var from=statsDateToISO(document.getElementById('stFrom')?document.getElementById('stFrom').value:'');
+  var to=statsDateToISO(document.getElementById('stTo')?document.getElementById('stTo').value:'');
+  if (from && to && from<=to) return;
+  period.value='month';
+  toggleStatsDateRange();
+}
+
 function goTab(t) {
   // Адміністрування доступне тільки адміну
   if (me && me.role !== 'Адмін' && t === 'admin') {
@@ -1583,6 +1615,7 @@ function goTab(t) {
   if (me && !RMGR.includes(me.role) && (t==='mine'||t==='all'||t==='archive'||t==='stats')) {
     goTab('exec'); return;
   }
+  if (t!=='stats') resetInvalidStatsDateRange();
   try { sessionStorage.setItem('tt_active_tab', t); } catch(_) {}
   document.querySelectorAll('[id^="tab-"]').forEach(function(s){ s.style.display='none'; });
   var el=document.getElementById('tab-'+t); if (el) el.style.display='';
@@ -2637,21 +2670,68 @@ function toggleStatsDateRange() {
   if (!isCustom) {
     var from=document.getElementById('stFrom');
     var to=document.getElementById('stTo');
+    var fromPicker=document.getElementById('stFromPicker');
+    var toPicker=document.getElementById('stToPicker');
     if (from) from.value='';
     if (to) to.value='';
+    if (fromPicker) fromPicker.value='';
+    if (toPicker) toPicker.value='';
   }
 }
 
+function formatStatsDate(input) {
+  var isoMatch=String(input.value||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    input.value=isoMatch[3]+'.'+isoMatch[2]+'.'+isoMatch[1];
+    return;
+  }
+  var digits=String(input.value||'').replace(/\D/g,'').slice(0,8);
+  if (digits.length>4) input.value=digits.slice(0,2)+'.'+digits.slice(2,4)+'.'+digits.slice(4);
+  else if (digits.length>2) input.value=digits.slice(0,2)+'.'+digits.slice(2);
+  else input.value=digits;
+}
+
+function statsDateToISO(value) {
+  var text=String(value||'').trim();
+  if (!text) return '';
+  var match=text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!match) return null;
+  var day=Number(match[1]), month=Number(match[2]), year=Number(match[3]);
+  var date=new Date(Date.UTC(year,month-1,day));
+  if (year<1000 || date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day) return null;
+  return String(year).padStart(4,'0')+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+
+function openStatsDatePicker(id) {
+  var picker=document.getElementById(id);
+  if (!picker) return;
+  if (typeof picker.showPicker==='function') picker.showPicker();
+  else picker.click();
+}
+
+function syncStatsDatePicker(picker,inputId) {
+  var input=document.getElementById(inputId);
+  if (input && picker.value) input.value=picker.value.split('-').reverse().join('.');
+}
+
 function loadStats() {
-  var from=document.getElementById('stFrom')?document.getElementById('stFrom').value:'';
-  var to=document.getElementById('stTo')?document.getElementById('stTo').value:'';
+  var from=statsDateToISO(document.getElementById('stFrom')?document.getElementById('stFrom').value:'');
+  var to=statsDateToISO(document.getElementById('stTo')?document.getElementById('stTo').value:'');
   var period=document.getElementById('stPer')?document.getElementById('stPer').value:'month';
+  if (from===null || to===null) { toast('Введіть коректну дату у форматі ДД.ММ.РРРР','err'); return; }
   if (period==='custom' && (!from || !to)) { toast('Оберіть обидві дати для довільного діапазону','err'); return; }
   if (from && to && from>to) { toast('Дата початку не може бути пізніше дати завершення','err'); return; }
+  var loading=document.getElementById('stLoading');
+  var applyButton=document.getElementById('stApply');
+  if (loading) loading.style.display='flex';
+  if (applyButton) { applyButton.disabled=true; applyButton.setAttribute('aria-busy','true'); }
   barOn();
   google.script.run
     .withSuccessHandler(function(r) {
-      barOff(); if(!r.ok){toast(r.err||'Помилка','err');return;}
+      barOff();
+      if (loading) loading.style.display='none';
+      if (applyButton) { applyButton.disabled=false; applyButton.setAttribute('aria-busy','false'); }
+      if(!r.ok){toast(r.err||'Помилка','err');return;}
       updateStatsEmployeeOptions(r.employees);
       var s=r.stats;
       document.getElementById('stT').textContent=s.total;
@@ -2703,7 +2783,12 @@ function loadStats() {
       });
       db.appendChild(dfrag);
     })
-    .withFailureHandler(function(){barOff();toast('Помилка','err');})
+    .withFailureHandler(function(){
+      barOff();
+      if (loading) loading.style.display='none';
+      if (applyButton) { applyButton.disabled=false; applyButton.setAttribute('aria-busy','false'); }
+      toast('Помилка','err');
+    })
     .getAnalytics(
       me.login,
       document.getElementById('stDep')?document.getElementById('stDep').value:'',
