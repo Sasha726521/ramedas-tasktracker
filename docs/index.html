@@ -244,6 +244,11 @@ select.inp option{background:var(--sf2);color:var(--tx);}
 .cbt{font-size:11px;color:var(--tx);word-break:break-word;line-height:1.45;}
 /* ════════════════ FILES ════════════════ */
 .fi-item{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;}
+.fi-pending{gap:7px;padding:4px 8px;}
+.fi-pending .fi-info{display:flex;align-items:baseline;gap:6px;}
+.fi-pending .fi-name{font-size:10px;flex:1;min-width:0;}
+.fi-pending .fi-meta{margin-top:0;white-space:nowrap;}
+.fi-pending .fi-del{padding:1px 3px;}
 .fi-ico{font-size:16px;flex-shrink:0;}
 .fi-info{flex:1;min-width:0;}
 .fi-name{font-size:11px;font-weight:600;color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;display:block;}
@@ -812,10 +817,10 @@ select.inp option{background:var(--sf2);color:var(--tx);}
       <div class="lbl">Завантажити файл (до 5 МБ)</div>
       <div class="uz" onclick="document.getElementById('fiIn').click()">
         <div style="font-size:22px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 11l-8.5 8.5a5 5 0 01-7-7L14 4a3.5 3.5 0 015 5l-8.5 8.5a2 2 0 01-3-3L14 6"></path></svg></div>
-        <div style="font-size:11px;color:var(--tx2);margin-top:3px;">Натисніть щоб обрати файл</div>
-        <input type="file" id="fiIn" style="display:none;" onchange="onFileSel()">
+        <div style="font-size:11px;color:var(--tx2);margin-top:3px;">Натисніть щоб обрати файли</div>
+        <input type="file" id="fiIn" multiple style="display:none;" onchange="onFileSel()">
       </div>
-      <div id="fiNm" style="display:none;font-size:10px;color:var(--ac);font-weight:600;"></div>
+      <div id="fiSelectedList" style="display:flex;flex-direction:column;gap:6px;"></div>
       <button id="fiUpB" class="btn bp bfl" onclick="uploadFile()" style="display:none;">Завантажити на Google Drive</button>
       <div class="lbl">Або додати посилання</div>
       <input id="fiUrl" type="url" class="inp" placeholder="https://drive.google.com/...">
@@ -1226,7 +1231,7 @@ var selExecs=[], editTId=null, editUId=null, editIId=null;
 var taskSubmitting=false;
 var revId='', commId='', curDetId='', filesId='', infoFilesId='';
 var taskDataReady=false;
-var selFile=null, selInfoFile=null;
+var selectedTaskFiles=[], selInfoFile=null, uploadingTaskFiles=false, deletingTaskFile=false;
 var execF='', wlTab='mine', autoT=null;
 var isLight=false;
 
@@ -1355,7 +1360,7 @@ function logout() {
   sessionStorage.removeItem('ttv5');
   try { sessionStorage.removeItem('tt_users'); } catch(_) {}
   me=null; rawUsers=[]; allTasks=[]; infoRecs=[]; planSlots=[]; statTasksAll=[]; statOpen={}; statShown=[]; taskDataReady=false;
-  selExecs=[]; filesId=''; selFile=null; selInfoFile=null;
+  selExecs=[]; filesId=''; selectedTaskFiles=[]; selInfoFile=null;
   if (autoT) clearInterval(autoT);
   document.getElementById('app').classList.remove('on');
   document.getElementById('auth').style.display='flex';
@@ -2235,12 +2240,12 @@ function submitComm() {
 //  ФАЙЛИ ЗАДАЧ
 // ══════════════════════════════════════════
 function openFilesM(tid) {
-  filesId=tid; selFile=null;
+  if (uploadingTaskFiles) { toast('Дочекайтесь завершення завантаження','err'); return; }
+  filesId=tid; selectedTaskFiles=[];
   var t=allTasks.find(function(x){return x.id===tid;});
   document.getElementById('fiTL').textContent=t?'['+tid+'] '+t.title:tid;
-  document.getElementById('fiNm').style.display='none';
-  document.getElementById('fiUpB').style.display='none';
   document.getElementById('fiIn').value='';
+  renderSelectedTaskFiles();
   document.getElementById('fiUrl').value=''; document.getElementById('fiLN').value='';
   loadTaskFiles(tid); openM('mFiles');
 }
@@ -2255,9 +2260,10 @@ function loadTaskFiles(tid) {
       r.files.forEach(function(f) {
         var isLk=f.name.indexOf('🔗')===0;
         var div=document.createElement('div'); div.className='fi-item';
+        div.id='taskFile-'+f.id;
         div.innerHTML='<span class="fi-ico">'+(isLk?'🔗':'📄')+'</span>' +
           '<div class="fi-info"><a href="'+h(f.url)+'" target="_blank" class="fi-name">'+h(f.name.replace(/^🔗\s*/,''))+'</a><div class="fi-meta">'+(function(){ var u=rawUsers&&rawUsers.find(function(x){return x.login===f.uploadedBy;}); return u ? h(u.name)+' · 🏢 '+h(u.dept||f.uploadedBy) : h(f.uploadedBy); })()+' · '+h(fmtTaskDate(f.uploadedAt))+'</div></div>' +
-          '<button class="fi-del" onclick="deleteFile(\''+e(f.id)+'\')">🗑</button>';
+          '<button class="fi-del" onclick="deleteFile(\''+e(f.id)+'\','+(isLk?'true':'false')+')">🗑</button>';
         frag.appendChild(div);
       });
       list.appendChild(frag);
@@ -2266,25 +2272,91 @@ function loadTaskFiles(tid) {
     .getTaskFiles(tid);
 }
 function onFileSel() {
-  var inp=document.getElementById('fiIn'); if(!inp.files||!inp.files[0]) return;
-  var file=inp.files[0];
-  if (file.size>5*1024*1024) { toast('Файл > 5 МБ. Завантажте на Drive вручну.','err',4000); inp.value=''; return; }
-  selFile=file;
-  var nm=document.getElementById('fiNm'); nm.textContent=''+file.name+' ('+(file.size/1024).toFixed(1)+' КБ)'; nm.style.display='';
-  document.getElementById('fiUpB').style.display='';
+  var inp=document.getElementById('fiIn');
+  if (uploadingTaskFiles) { inp.value=''; return; }
+  var files=Array.prototype.slice.call(inp.files||[]), tooLarge=0;
+  inp.value='';
+  files.forEach(function(file) {
+    if (file.size>5*1024*1024) tooLarge++;
+    else selectedTaskFiles.push(file);
+  });
+  if (tooLarge) toast('Файли понад 5 МБ не додані.','err',4000);
+  renderSelectedTaskFiles();
+}
+function renderSelectedTaskFiles() {
+  var list=document.getElementById('fiSelectedList');
+  var upload=document.getElementById('fiUpB');
+  var input=document.getElementById('fiIn');
+  list.innerHTML='';
+  selectedTaskFiles.forEach(function(file) {
+    var row=document.createElement('div'); row.className='fi-item fi-pending';
+    var info=document.createElement('div'); info.className='fi-info';
+    var name=document.createElement('div'); name.className='fi-name'; name.textContent=file.name;
+    var size=document.createElement('div'); size.className='fi-meta'; size.textContent=(file.size/1024).toFixed(1)+' КБ';
+    var remove=document.createElement('button'); remove.type='button'; remove.className='fi-del';
+    remove.textContent='×'; remove.title='Прибрати файл'; remove.setAttribute('aria-label','Прибрати '+file.name);
+    remove.disabled=uploadingTaskFiles;
+    remove.onclick=function(){ removeSelectedTaskFile(file); };
+    info.appendChild(name); info.appendChild(size);
+    row.appendChild(info); row.appendChild(remove); list.appendChild(row);
+  });
+  upload.style.display=selectedTaskFiles.length?'':'none';
+  upload.disabled=uploadingTaskFiles;
+  input.disabled=uploadingTaskFiles;
+}
+function removeSelectedTaskFile(file) {
+  if (uploadingTaskFiles) return;
+  selectedTaskFiles=selectedTaskFiles.filter(function(selected){return selected!==file;});
+  renderSelectedTaskFiles();
 }
 function uploadFile() {
-  if (!selFile||!filesId) return;
-  var btn=document.getElementById('fiUpB'); btn.disabled=true; btn.textContent='Завантаження...'; barOn();
-  var rd=new FileReader();
+  if (!selectedTaskFiles.length||!filesId||uploadingTaskFiles) return;
+  var batch={taskId:filesId,caller:me.login,files:selectedTaskFiles.slice(),next:0,completed:0,uploaded:0,failed:0,failedNames:[]};
+  uploadingTaskFiles=true;
+  renderSelectedTaskFiles();
+  document.getElementById('fiUpB').textContent='Завантаження (0/'+batch.files.length+')...';
+  barOn();
+  for (var i=0;i<Math.min(3,batch.files.length);i++) uploadNextTaskFile(batch);
+}
+function uploadNextTaskFile(batch) {
+  if (batch.next>=batch.files.length) return;
+  var file=batch.files[batch.next++], rd=new FileReader();
+  function finish(ok) {
+    batch.completed++;
+    if (ok) {
+      batch.uploaded++;
+      selectedTaskFiles=selectedTaskFiles.filter(function(selected){return selected!==file;});
+      renderSelectedTaskFiles();
+    } else {
+      batch.failed++;
+      batch.failedNames.push(file.name);
+    }
+    if (filesId===batch.taskId)
+      document.getElementById('fiUpB').textContent='Завантаження ('+batch.completed+'/'+batch.files.length+')...';
+    if (batch.completed===batch.files.length) {
+      uploadingTaskFiles=false;
+      barOff();
+      renderSelectedTaskFiles();
+      if (filesId===batch.taskId) {
+        document.getElementById('fiUpB').textContent='Завантажити на Google Drive';
+        if (batch.uploaded) loadTaskFiles(batch.taskId);
+      }
+      if (batch.failed) toast('Не вдалося завантажити: '+batch.failedNames.join(', '),'err',5000);
+      else toast('Завантажено: '+batch.uploaded,'ok');
+      return;
+    }
+    uploadNextTaskFile(batch);
+  }
   rd.onload=function(ev) {
-    var b64=ev.target.result.split(',')[1];
-    google.script.run
-      .withSuccessHandler(function(r){ barOff(); btn.disabled=false; btn.textContent='Завантажити на Google Drive'; if(r.ok){toast('Завантажено','ok');document.getElementById('fiIn').value='';document.getElementById('fiNm').style.display='none';document.getElementById('fiUpB').style.display='none';selFile=null;loadTaskFiles(filesId);}else toast(r.err||'Помилка','err'); })
-      .withFailureHandler(function(){ barOff(); btn.disabled=false; btn.textContent='Завантажити на Google Drive'; toast('Помилка','err'); })
-      .uploadTaskFile(filesId,selFile.name,b64,selFile.type,me.login);
+    var result=ev.target.result;
+    if (typeof result!=='string'||result.indexOf(',')<0) { finish(false); return; }
+    _callAPI('uploadTaskFile',[batch.taskId,file.name,result.split(',')[1],file.type,batch.caller],
+      function(r){finish(!!(r&&r.ok));},
+      function(){finish(false);}
+    );
   };
-  rd.readAsDataURL(selFile);
+  rd.onerror=function(){finish(false);};
+  rd.readAsDataURL(file);
 }
 function addLink() {
   var url=document.getElementById('fiUrl').value.trim(), name=document.getElementById('fiLN').value.trim();
@@ -2293,9 +2365,26 @@ function addLink() {
   barOn();
   google.script.run.withSuccessHandler(function(r){barOff();if(r.ok){toast('Посилання додано','ok');document.getElementById('fiUrl').value='';document.getElementById('fiLN').value='';loadTaskFiles(filesId);}else toast(r.err||'Помилка','err');}).withFailureHandler(function(){barOff();toast('Помилка','err');}).addDriveLinkToTask(filesId,url,name,me.login);
 }
-function deleteFile(fid) {
-  if(!confirm('Видалити?'))return; barOn();
-  google.script.run.withSuccessHandler(function(r){barOff();if(r.ok){toast('Видалено','ok');loadTaskFiles(filesId);}else toast(r.err||'Помилка','err');}).withFailureHandler(function(){barOff();toast('Помилка','err');}).deleteTaskFile(fid,me.login);
+function deleteFile(fid,isLink) {
+  if (deletingTaskFile||!confirm(isLink?'Видалити посилання зі списку?':'Перемістити файл у кошик Google Drive?')) return;
+  var taskId=filesId, caller=me.login;
+  var row=document.getElementById('taskFile-'+fid);
+  if (row) row.remove();
+  var list=document.getElementById('fiList');
+  if (list&&!list.querySelector('.fi-item'))
+    list.innerHTML='<div style="color:var(--tx3);font-size:11px;padding:7px;text-align:center;">Файлів ще немає</div>';
+  deletingTaskFile=true;
+  barOn();
+  _callAPI('deleteTaskFile',[fid,caller],function(r) {
+    deletingTaskFile=false; barOff();
+    if (r&&r.ok) { toast('Видалено','ok'); return; }
+    toast(r&&r.err||'Помилка','err');
+    if (filesId===taskId) loadTaskFiles(taskId);
+  },function(err) {
+    deletingTaskFile=false; barOff();
+    toast(err&&err.message||'Помилка','err');
+    if (filesId===taskId) loadTaskFiles(taskId);
+  });
 }
 
 // ══════════════════════════════════════════

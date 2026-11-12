@@ -552,8 +552,12 @@ function uploadTaskFile(taskId, fileName, base64Data, mimeType, callerLogin) {
     const dept     = taskRow ? String(taskRow[5]||"Загальне") : "Загальне";
     const fname    = "TaskTracker_Files_" + dept.replace(/[\/\\:*?"<>|]/g,"_").substring(0,40);
     const fl       = DriveApp.getFoldersByName(fname);
-    const folder   = fl.hasNext() ? fl.next() : DriveApp.createFolder(fname);
-    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    let folder;
+    if (fl.hasNext()) folder = fl.next();
+    else {
+      folder = DriveApp.createFolder(fname);
+      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
 
     const bytes = Utilities.base64Decode(base64Data);
     const blob  = Utilities.newBlob(bytes, mimeType||"application/octet-stream", fileName);
@@ -623,6 +627,13 @@ function deleteTaskFile(fileId, callerLogin) {
       if (!caller) return { ok: false, err: "Не авторизовано" };
       if (uploader !== callerLogin.toLowerCase().trim() && !isMgrRole(caller.role))
         return { ok: false, err: "Немає прав" };
+      const fileName = String(rows[i][2]||"");
+      if (fileName.indexOf("🔗") !== 0) {
+        const fileUrl = String(rows[i][3]||"");
+        const match = fileUrl.match(/(?:\/d\/|[?&]id=)([-\w]+)/);
+        if (!match) return { ok: false, err: "Не вдалося визначити файл Google Drive" };
+        DriveApp.getFileById(match[1]).setTrashed(true);
+      }
       sheet.deleteRow(i+1);
       return { ok: true };
     }
