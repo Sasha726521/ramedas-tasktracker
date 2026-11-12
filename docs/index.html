@@ -2372,13 +2372,16 @@ function openCommD(tid) {
   google.script.run
     .withSuccessHandler(function(cs) {
       list.innerHTML='';
-      if (!cs||!cs.length) { list.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:11px;padding:18px;">Коментарів ще немає</div>'; return; }
+      var items=Array.isArray(cs)?cs:(cs&&Array.isArray(cs.comments)?cs.comments:[]);
+      if (!items.length) { list.innerHTML='<div style="text-align:center;color:var(--tx3);font-size:11px;padding:18px;">Коментарів ще немає</div>'; return; }
       var frag=document.createDocumentFragment();
-      cs.forEach(function(c) {
-        var iM=c.author===me.login;
+      items.forEach(function(c) {
+        var iM=String(c.author||'').toLowerCase().trim()===me.login.toLowerCase().trim();
         var wr=document.createElement('div'); wr.style.cssText='display:flex;'+(iM?'justify-content:flex-end;':'');
         var bb=document.createElement('div'); bb.className='cbb '+(iM?'me':'ot');
-        bb.innerHTML='<div class="cba '+(iM?'me':'ot')+'">'+h(c.name||c.author)+' · '+h(fmtTaskDate(c.time))+'</div><div class="cbt">'+h(c.text)+'</div>';
+        var cName=c.name||c.authorName||c.author;
+        var cTime=c.time||c.createdAt||'';
+        bb.innerHTML='<div class="cba '+(iM?'me':'ot')+'">'+h(cName)+' · '+h(fmtTaskDate(cTime))+'</div><div class="cbt">'+h(c.text)+'</div>';
         wr.appendChild(bb); frag.appendChild(wr);
       });
       list.appendChild(frag); list.scrollTop=list.scrollHeight;
