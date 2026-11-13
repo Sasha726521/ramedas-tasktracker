@@ -2607,6 +2607,18 @@ function loadWorkload() {
   google.script.run
     .withSuccessHandler(function(r) {
       barOff(); if(!r.ok){toast(r.err||'Помилка','err');return;}
+      var myKey=String(me.login||'').toLowerCase().trim();
+      var mine=(r.data||[]).find(function(x){return String(x.login||'').toLowerCase().trim()===myKey;});
+      if (mine) {
+        var sEl=document.getElementById('wlS'), eEl=document.getElementById('wlE'), stEl=document.getElementById('wlSt'), nEl=document.getElementById('wlN');
+        if (sEl) sEl.value=mine.startTime||'09:00';
+        if (eEl) eEl.value=mine.endTime||'18:00';
+        if (stEl) {
+          var stVal=mine.status==='Вільний'?'На роботі':(mine.status||'На роботі');
+          stEl.value=stVal;
+        }
+        if (nEl) nEl.value=mine.note||'';
+      }
       var list=document.getElementById('wlTeam'), emp=document.getElementById('wlTEmp');
       if (!r.data||!r.data.length){list.innerHTML='';emp.style.display='';return;}
       emp.style.display='none';
@@ -2655,6 +2667,16 @@ function loadPlanSlots() {
   if (!dt||!RMGR.includes(me.role)) return;
   try { planSlots=JSON.parse(localStorage.getItem('ttp_'+me.login+'_'+dt)||'[]'); } catch(_){planSlots=[];}
   renderPlanSlots();
+  google.script.run
+    .withSuccessHandler(function(r){
+      if (r&&r.ok&&Array.isArray(r.slots)) {
+        planSlots=r.slots;
+        try { localStorage.setItem('ttp_'+me.login+'_'+dt, JSON.stringify(planSlots)); } catch(_){}
+        renderPlanSlots();
+      }
+    })
+    .withFailureHandler(function(){})
+    .getUserDayPlan(me.login, dt, me.login);
 }
 function addSlot() {
   var dt=document.getElementById('wlDate')?document.getElementById('wlDate').value:'';
@@ -3105,7 +3127,7 @@ function deleteInfoFileFn(fid) {
 function openUserDayPlan(login, name) {
   var date = document.getElementById('wlDate') ? document.getElementById('wlDate').value : '';
   if (!date) { toast('Оберіть дату в Графіку','err'); return; }
-  document.getElementById('dpName').textContent = name + ' — план дня';
+  document.getElementById('dpName').textContent = (name || login) + ' — план дня';
   document.getElementById('dpDate').textContent = fmtTaskDate(date, 'full');
   document.getElementById('dpSlots').innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:11px;padding:12px;">Завантаження...</div>';
   document.getElementById('dpNoSlots').style.display = 'none';
@@ -3114,11 +3136,13 @@ function openUserDayPlan(login, name) {
   google.script.run
     .withSuccessHandler(function(r) {
       if (!r.ok) { document.getElementById('dpSlots').innerHTML='<div style="color:var(--rd);font-size:11px;padding:12px;">'+h(r.err||'Помилка')+'</div>'; return; }
+      if (!name && r.name) document.getElementById('dpName').textContent = r.name + ' — план дня';
       // Статус
       var wl = r.workload || {};
-      var wlCls = {'Вільний':'wlch wf','Зайнятий':'wlch wb','Відпустка':'wlch wv','Лікарняний':'wlch ws','Відрядження':'wlch wt'};
+      var wlCls = {'На роботі':'wlch wf','Вільний':'wlch wf','Зайнятий':'wlch wb','Відпустка':'wlch wv','Лікарняний':'wlch ws','Відрядження':'wlch wt'};
+      var stLabel = (!wl.status || wl.status === 'Вільний') ? 'На роботі' : wl.status;
       var statusHtml = '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--sf2);border-radius:9px;margin-bottom:12px;">' +
-        '<span class="'+(wlCls[wl.status]||'wlch wf')+'">'+h(wl.status||'Вільний')+'</span>' +
+        '<span class="'+(wlCls[stLabel]||'wlch wf')+'">'+h(stLabel)+'</span>' +
         '<span style="font-size:10px;color:var(--tx2);font-family:monospace;">'+(wl.startTime||'09:00')+' – '+(wl.endTime||'18:00')+'</span>' +
         (wl.note?'<span style="font-size:10px;color:var(--tx3);">'+h(wl.note)+'</span>':'') +
       '</div>';
