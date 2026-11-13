@@ -1650,11 +1650,16 @@ function goTab(t) {
 // ══════════════════════════════════════════
 //  АВТО-ОНОВЛЕННЯ
 // ══════════════════════════════════════════
+var dataSeq = 0;
+var statusPending = {};
+
 function startAutoRefresh() {
   if (autoT) clearInterval(autoT);
   autoT = setInterval(function() {
+    var reqSeq = ++dataSeq;
     google.script.run
       .withSuccessHandler(function(r) {
+        if (reqSeq !== dataSeq) return;
         if (!r||!r.ok) return;
         allTasks = r.tasks||[];
         if (r.users && r.users.length) {
@@ -1682,9 +1687,11 @@ function refresh(showTaskLoading) {
     else buildViews();
   }
   barOn();
+  var reqSeq = ++dataSeq;
   google.script.run
     .withSuccessHandler(function(r) {
       barOff();
+      if (reqSeq !== dataSeq) return;
       if (!r||!r.ok) {
         if (tasksLoadState==='loading') {
           tasksLoadState='error';
@@ -2203,16 +2210,20 @@ function copyTaskLink() {
 //  ЗМІНА СТАТУСУ
 // ══════════════════════════════════════════
 function qs(tid, ns) {
+  if (statusPending[tid]) { toast('Зачекайте, статус ще оновлюється','inf'); return; }
+  statusPending[tid] = true;
+  var mutSeq = ++dataSeq;
   barOn();
   for (var i=0;i<allTasks.length;i++) { if (allTasks[i].id===tid) allTasks[i].status=ns; }
   buildViews(); updateBadges();
   google.script.run
     .withSuccessHandler(function(r){
+      delete statusPending[tid];
       barOff();
       if (!r.ok) { toast(r.err||'Помилка','err'); refresh(); }
-      else { toast(h(SLAB[ns]||ns),'ok'); refresh(); }
+      else { toast(h(SLAB[ns]||ns),'ok'); if (mutSeq === dataSeq) refresh(); }
     })
-    .withFailureHandler(function(){ barOff(); toast("Помилка з'єднання",'err'); refresh(); })
+    .withFailureHandler(function(){ delete statusPending[tid]; barOff(); toast("Помилка з'єднання",'err'); refresh(); })
     .updateTaskStatus(tid, ns, me.login, '');
 }
 
@@ -2241,6 +2252,7 @@ function submitRev() {
   var cm=document.getElementById('rvCm').value.trim();
   if (!cm) { toast('Введіть коментар','err'); return; }
   closeM('mRev'); barOn();
+  ++dataSeq;
   for (var i=0;i<allTasks.length;i++) { if (allTasks[i].id===rvId2){allTasks[i].status='На доопрацювання';allTasks[i].revComment=cm;} }
   buildViews(); updateBadges();
   google.script.run
