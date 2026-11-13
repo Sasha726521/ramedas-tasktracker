@@ -345,6 +345,11 @@ body.light .rvbt{color:#b42318;}
   #tab-stats .stats-header{grid-template-columns:minmax(0,1fr);}
   .stats-filters{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;}
   #stCustomRange{grid-row:3;}
+  .fbar select.inp, #tab-stats .stats-filters select.inp{max-width:100%!important;width:100%!important;flex:1 1 100%;}
+  .tc-row{flex-direction:column;align-items:stretch!important;}
+  .tc-row > div:first-child{width:100%;}
+  .tc-row > div:last-child{flex-direction:row!important;justify-content:space-between;align-items:center!important;width:100%;padding-top:6px;border-top:1px solid var(--bd);}
+  .tc-row .tct-all{white-space:normal!important;}
 }
 @media(max-width:768px){
   .sb{display:none;}.mhd{display:flex;}#mnav{display:block;}
@@ -805,7 +810,7 @@ body.light .rvbt{color:#b42318;}
 <div id="mTask" class="ovl" style="display:none;">
   <div class="mdl su">
     <div class="mhdr"><div class="mttl" id="mTT">Нова задача</div><button class="mcl" onclick="closeM('mTask')">×</button></div>
-    <div id="taskSubmitLoading" class="task-submit-overlay" style="display:none;" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span>Створюємо задачу...</div>
+    <div id="taskSubmitLoading" class="task-submit-overlay" style="display:none;" role="status" aria-live="polite"><span class="task-spinner" aria-hidden="true"></span><span id="taskSubmitLoadingTxt">Створюємо задачу...</span></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div><label class="lbl">Назва *</label><input id="fTi" type="text" class="inp" placeholder="Чітко та конкретно..."></div>
       <div><label class="lbl">Опис</label><textarea id="fDe" rows="2" class="inp" style="resize:none;" placeholder="Деталі завдання..."></textarea></div>
@@ -2035,10 +2040,10 @@ function mkAllCard(t, idx) {
   var isMgr=RMGR.includes(me.role);
 
   div.innerHTML=
-    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
+    '<div class="tc-row" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
       '<div style="flex:1;min-width:0;">' +
         '<div class="tcid">'+h(t.id)+' · '+h(t.type)+'</div>' +
-        '<div style="font-size:12px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">'+h(t.title)+'</div>' +
+        '<div class="tct-all" style="font-size:12px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">'+h(t.title)+'</div>' +
         '<div class="tcm">' +
           '<span>'+h(t.execNames||(t.executors[0]||'—'))+'</span>' +
           '<span>'+h(t.authorName||t.author)+'</span>' +
@@ -2336,12 +2341,28 @@ function submitTask() {
     if (firstExec) deptVal = String(firstExec[2]||'');
   }
   var data={title:ti,desc:document.getElementById('fDe').value.trim(),type:document.getElementById('fTy').value,priority:document.getElementById('fPr').value,dept:deptVal,executors:selExecs,coExec:document.getElementById('fCo').value,deadline:document.getElementById('fDl').value};
+  var ldTxt=document.getElementById('taskSubmitLoadingTxt');
   if (editTId) {
-    closeM('mTask'); barOn();
+    taskSubmitting=true;
+    if (ldTxt) ldTxt.textContent='Зберігаємо зміни...';
+    document.getElementById('taskSubmitLoading').style.display='flex';
+    barOn();
     data.status=document.getElementById('fSt').value;
-    google.script.run.withSuccessHandler(function(r){barOff();if(r.ok){toast('Збережено','ok');refresh();}else toast(r.err||'Помилка','err');}).withFailureHandler(function(){barOff();toast('Помилка','err');}).editTask(editTId,data,me.login);
+    google.script.run.withSuccessHandler(function(r){
+      barOff();
+      taskSubmitting=false;
+      document.getElementById('taskSubmitLoading').style.display='none';
+      if(r&&r.ok){closeM('mTask');toast('Збережено','ok');refresh();}
+      else toast((r&&r.err)||'Помилка','err');
+    }).withFailureHandler(function(){
+      barOff();
+      taskSubmitting=false;
+      document.getElementById('taskSubmitLoading').style.display='none';
+      toast('Помилка','err');
+    }).editTask(editTId,data,me.login);
   } else {
     taskSubmitting=true;
+    if (ldTxt) ldTxt.textContent='Створюємо задачу...';
     document.getElementById('taskSubmitLoading').style.display='flex';
     barOn();
     google.script.run.withSuccessHandler(function(r){
