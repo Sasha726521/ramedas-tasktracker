@@ -725,18 +725,20 @@ function getAnalytics(callerLogin, deptFilter, period, employeeFilter, dateFromF
         if (toDate && refDateOnly > toDate) continue;
       } else if (refDate && refDate < dateFrom) continue;
 
+      const isOvd = Boolean(dl && dl < now && !["Виконано","Скасовано"].includes(status));
       total++;
       if (status === "Виконано")         done++;
       if (status === "В роботі")         inWork++;
       if (status === "На доопрацювання") revision++;
-      if (dl && dl < now && !["Виконано","Скасовано"].includes(status)) overdue++;
+      if (isOvd) overdue++;
       if (status === "Виконано" && dl && closed && closed <= dl) onTime++;
 
       if (selectedEmployee) {
         const name = uMap[selectedEmployee] || selectedEmployee;
         byExec[name] = (byExec[name]||0) + 1;
       } else {
-        execs.forEach(l => {
+        const allTaskExecs = execs.concat(coExec && !execs.includes(coExec) ? [coExec] : []);
+        allTaskExecs.forEach(l => {
           const name = uMap[l] || l;
           byExec[name] = (byExec[name]||0) + 1;
         });
@@ -746,18 +748,25 @@ function getAnalytics(callerLogin, deptFilter, period, employeeFilter, dateFromF
       byDept[dept].total++;
       if (status === "Виконано") byDept[dept].done++;
       if (status === "В роботі") byDept[dept].inWork++;
-      if (dl && dl < now && !["Виконано","Скасовано"].includes(status)) byDept[dept].overdue++;
+      if (isOvd) byDept[dept].overdue++;
 
       taskList.push({
         id:         String(r[0]),
         title:      String(r[1]||""),
+        desc:       String(r[2]||""),
+        type:       String(r[3]||""),
         status,
         dept,
         priority:   String(r[13]||"Середній"),
         executor:   execs.concat(coExec && !execs.includes(coExec) ? [coExec] : []).map(l => uMap[l]||l).join(", "),
+        coExec:     coExec ? (uMap[coExec] || coExec) : "",
         authorName: uMap[author] || author,
         deadline:   dateISO(r[9]),
-        closedAt:   dateISO(r[11])
+        startedAt:  dateISO(r[10]),
+        closedAt:   dateISO(r[11]),
+        meetLink:   String(r[12]||""),
+        revComment: String(r[14]||""),
+        overdue:    isOvd
       });
     }
 

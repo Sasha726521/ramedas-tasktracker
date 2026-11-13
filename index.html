@@ -345,11 +345,6 @@ body.light .rvbt{color:#b42318;}
   #tab-stats .stats-header{grid-template-columns:minmax(0,1fr);}
   .stats-filters{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;}
   #stCustomRange{grid-row:3;}
-  .fbar select.inp, #tab-stats .stats-filters select.inp{max-width:100%!important;width:100%!important;flex:1 1 100%;}
-  .tc-row{flex-direction:column;align-items:stretch!important;}
-  .tc-row > div:first-child{width:100%;}
-  .tc-row > div:last-child{flex-direction:row!important;justify-content:space-between;align-items:center!important;width:100%;padding-top:6px;border-top:1px solid var(--bd);}
-  .tc-row .tct-all{white-space:normal!important;}
 }
 @media(max-width:768px){
   .sb{display:none;}.mhd{display:flex;}#mnav{display:block;}
@@ -360,6 +355,11 @@ body.light .rvbt{color:#b42318;}
   #tab-stats .stats-header{grid-template-columns:minmax(0,1fr);}
   .stats-filters{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;}
   #stCustomRange{grid-row:3;}
+  .fbar select.inp, #tab-stats .stats-filters select.inp{max-width:100%!important;width:100%!important;flex:1 1 100%;}
+  .tc-row{flex-direction:column;align-items:stretch!important;}
+  .tc-row > div:first-child{width:100%;}
+  .tc-row > div:last-child{flex-direction:row!important;justify-content:space-between;align-items:center!important;width:100%;padding-top:6px;border-top:1px solid var(--bd);}
+  .tc-row .tct-all{white-space:normal!important;}
 }
 
 .ct>section{display:flex;flex-direction:column;gap:16px;}
@@ -2807,8 +2807,22 @@ function loadStats() {
       document.getElementById('stK').textContent=s.kpi+'%';
       document.getElementById('stKB').style.width=s.kpi+'%';
 
-      // Список задач — з ПІБ
-      statTasksAll = (r.taskList||[]).filter(function(t){ return t.title && t.title!=='title' && t.executor!=='executors'; });
+      // Список задач — з ПІБ та повною деталізацією
+      statTasksAll = (r.taskList||[]).filter(function(t){ return t.title && t.title!=='title' && t.executor!=='executors'; }).map(function(t){
+        var full = allTasks && allTasks.find(function(x){ return x.id === t.id; });
+        if (full) {
+          if (!t.desc && full.desc) t.desc = full.desc;
+          if (!t.type && full.type) t.type = full.type;
+          if (!t.coExec && full.coExecName) t.coExec = full.coExecName;
+          if (!t.startedAt && full.startedAt) t.startedAt = full.startedAt;
+          if (!t.meetLink && full.meetLink) t.meetLink = full.meetLink;
+          if (!t.revComment && full.revComment) t.revComment = full.revComment;
+        }
+        if (typeof t.overdue !== 'boolean') {
+          t.overdue = Boolean(t.deadline && kyivInstant(t.deadline) < new Date() && !['Виконано','Скасовано'].includes(t.status));
+        }
+        return t;
+      });
       updateStatusFilter();
       filterStatTasks();
 
@@ -2871,7 +2885,7 @@ var statShown = [];         // поточний відфільтрований �
 
 function isStatOverdue(t) {
   if (typeof t.overdue === 'boolean') return t.overdue;
-  return false;
+  return Boolean(t && t.deadline && kyivInstant(t.deadline) < new Date() && !['Виконано','Скасовано'].includes(t.status));
 }
 
 // Заповнює фільтр статусів з лічильниками (зберігає вибране значення)
