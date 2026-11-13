@@ -827,7 +827,7 @@ body.light .rvbt{color:#b42318;}
         </div>
       </div>
       <div><label class="lbl">Суміжний виконавець</label><select id="fCo" class="inp"><option value="">— Не призначати —</option></select></div>
-      <div><label class="lbl">Дедлайн</label><input id="fDl" type="datetime-local" class="inp"></div>
+      <div><label class="lbl">Дедлайн</label><input id="fDl" type="datetime-local" class="inp" style="cursor:pointer;" onclick="try{if(this.showPicker)this.showPicker();}catch(_){}" onchange="this.blur()"></div>
       <div id="fStRow" style="display:none;"><label class="lbl" style="color:var(--am);">Статус</label>
         <select id="fSt" class="inp"><option>Нова</option><option>В роботі</option><option>На перевірці</option><option>На доопрацювання</option><option>Виконано</option><option>Скасовано</option></select>
       </div>
