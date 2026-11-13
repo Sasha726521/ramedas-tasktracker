@@ -1714,6 +1714,10 @@ function refresh(showTaskLoading) {
       buildViews(); updateBadges();
       taskDataReady=true;
       openTaskFromUrl();
+      var detModalEl=document.getElementById('mDet');
+      if (curDetId && detModalEl && detModalEl.style.display!=='none') {
+        openDet(curDetId, true);
+      }
     })
     .withFailureHandler(function(){
       barOff();
@@ -2360,6 +2364,7 @@ function submitTask() {
     document.getElementById('taskSubmitLoading').style.display='flex';
     barOn();
     data.status=document.getElementById('fSt').value;
+    ++dataSeq;
     google.script.run.withSuccessHandler(function(r){
       barOff();
       taskSubmitting=false;
